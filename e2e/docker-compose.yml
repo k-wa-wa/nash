@@ -1,0 +1,9 @@
+version: '3'
+services:
+  sshd:
+    build: ./ssh_server
+    ports:
+      - "2222:22"
+    environment:
+      - SSH_USER=testuser
+      - SSH_PASSWORD=testpass
