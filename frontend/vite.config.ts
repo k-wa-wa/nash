@@ -19,6 +19,20 @@ export default defineConfig({
 		outDir: "../cmd/server/dist",
 		emptyOutDir: true,
 	},
+	server: {
+		host: true, // Listen on all addresses
+		proxy: {
+			"/api": {
+				target: "http://localhost:8080",
+				changeOrigin: true,
+			},
+			"/ws": {
+				target: "ws://localhost:8080",
+				ws: true,
+				changeOrigin: true,
+			},
+		},
+	},
 	test: {
 		projects: [
 			{

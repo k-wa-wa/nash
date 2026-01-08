@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -84,10 +85,16 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	wsReader := ws.NewReader(conn)
 	wsWriter := ws.NewWriter(conn)
 
+	// Set Resize Handler
+	wsReader.SetResizeHandler(sshClient)
+
 	// Start Shell
+	log.Println("Starting Shell...")
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- sshClient.StartShell(wsReader, wsWriter, wsWriter)
+		err := sshClient.StartShell(wsReader, wsWriter, wsWriter)
+		log.Printf("StartShell returned: %v", err)
+		errChan <- err
 	}()
 
 	select {
@@ -95,6 +102,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("SSH session ended with error: %v", err)
 			conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("\r\nSSH session ended with error: %v", err)))
+		} else {
+			log.Println("SSH session ended normally")
+			conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session ended normally\r\n"))
 		}
 	case <-time.After(60 * time.Minute): // Timeout 1 hour
 		log.Println("SSH session timed out.")
@@ -123,7 +133,13 @@ func main() {
 	// Find and print local IP
 	localIP := getLocalIP()
 	if localIP != "" {
-		url := fmt.Sprintf("http://%s:%d", localIP, port)
+		// If DEV_MODE is true, point QR code to Frontend Dev Server (5173)
+		// Otherwise point to Backend (8080)
+		targetPort := port
+		if os.Getenv("DEV_MODE") == "true" {
+			targetPort = 5173
+		}
+		url := fmt.Sprintf("http://%s:%d", localIP, targetPort)
 		fmt.Printf("\nTarget URL: %s\n", url)
 
 		// Generate QR code

@@ -6,16 +6,15 @@ export interface SSHHost {
 	IdentityFile?: string;
 }
 
-export interface ConnectionParams {
-	host: string;
-	port: string;
-	user: string;
-	authType: "password" | "key" | "none";
+export type ConnectionParams = {
+	host?: string;
+	port?: string;
+	user?: string;
 	password?: string;
-	privateKey?: string; // Content of the key
-}
+};
 
-export const API_BASE = import.meta.env.DEV ? "http://localhost:8080" : "";
+// In dev (vite proxy) or prod (same origin), utilize relative paths.
+export const API_BASE = "";
 
 export async function fetchHosts(): Promise<SSHHost[]> {
 	try {

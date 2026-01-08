@@ -12,10 +12,11 @@ import (
 // Client represents an SSH client connection.
 type Client struct {
 	*ssh.Client
-	Host string
-	Port int
-	User string
-	Pass string
+	Host    string
+	Port    int
+	User    string
+	Pass    string
+	session *ssh.Session
 }
 
 // NewClient creates a new SSH client.
@@ -56,6 +57,7 @@ func (c *Client) StartShell(stdin io.Reader, stdout, stderr io.Writer) error {
 		return fmt.Errorf("failed to create session: %w", err)
 	}
 	defer session.Close()
+	c.session = session
 
 	session.Stdin = stdin
 	session.Stdout = stdout
@@ -76,6 +78,15 @@ func (c *Client) StartShell(stdin io.Reader, stdout, stderr io.Writer) error {
 	}
 
 	return session.Wait()
+}
+
+// Resize resizes the pty.
+func (c *Client) Resize(rows, cols int) {
+	if c.session != nil {
+		if err := c.session.WindowChange(rows, cols); err != nil {
+			log.Printf("Failed to resize pty: %v", err)
+		}
+	}
 }
 
 // Close closes the SSH client connection.
