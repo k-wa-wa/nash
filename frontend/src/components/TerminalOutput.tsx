@@ -2,9 +2,8 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import React, { useEffect, useImperativeHandle, useRef } from "react";
-import { VirtualKeyboard } from "./VirtualKeyboard";
 
-export interface ShellHandle {
+export interface TerminalOutputHandle {
     write: (data: string | Uint8Array) => void;
     focus: () => void;
     dispose: () => void;
@@ -13,10 +12,11 @@ export interface ShellHandle {
 interface Props {
     onData: (data: string) => void;
     onResize?: (cols: number, rows: number) => void;
+    onBufferChange?: (isAlternate: boolean) => void;
 }
 
-export const Shell = React.forwardRef<ShellHandle, Props>(
-    ({ onData, onResize }, ref) => {
+export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
+    ({ onData, onResize, onBufferChange }, ref) => {
         const terminalRef = useRef<HTMLDivElement>(null);
         const termInstanceRef = useRef<Terminal | null>(null);
 
@@ -44,6 +44,18 @@ export const Shell = React.forwardRef<ShellHandle, Props>(
                     onResize(size.cols, size.rows);
                 }
             });
+
+            // Monitor buffer changes (Normal vs Alternate)
+            if (onBufferChange) {
+                // Initial check
+                onBufferChange(term.buffer.active.type === 'alternate');
+
+                term.onRender(() => {
+                    // Check if buffer type changed
+                    const isAlt = term.buffer.active.type === 'alternate';
+                    onBufferChange(isAlt);
+                });
+            }
 
             if (terminalRef.current) {
                 term.open(terminalRef.current);
@@ -96,35 +108,21 @@ export const Shell = React.forwardRef<ShellHandle, Props>(
                     }
                 },
             }),
-            []
+            [],
         );
-
-        const handleVirtualKey = (key: string) => {
-            onData(key);
-            termInstanceRef.current?.focus();
-        };
 
         return (
             <div
                 style={{
-                    display: "flex",
-                    flexDirection: "column",
                     height: "100%",
                     width: "100%",
                     backgroundColor: "black",
                     overflow: "hidden",
+                    position: "relative",
                 }}
             >
-                {/* Terminal Container: Fills available space above keyboard */}
-                <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-                    <div ref={terminalRef} style={{ width: "100%", height: "100%" }} />
-                </div>
-
-                {/* Keyboard controls area */}
-                <div style={{ flexShrink: 0, width: "100%" }}>
-                    <VirtualKeyboard onKey={handleVirtualKey} />
-                </div>
+                <div ref={terminalRef} style={{ width: "100%", height: "100%" }} />
             </div>
         );
-    }
+    },
 );

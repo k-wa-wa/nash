@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Shell, type ShellHandle } from "../components/Shell";
+import { CommandInput, type CommandInputHandle } from "../components/CommandInput";
+import { ShortcutBar } from "../components/ShortcutBar";
+import {
+	TerminalOutput,
+	type TerminalOutputHandle,
+} from "../components/TerminalOutput";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 
@@ -8,8 +13,11 @@ export function TerminalPage() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const socketRef = useRef<WebSocket | null>(null);
-	const shellRef = useRef<ShellHandle>(null);
+	const shellRef = useRef<TerminalOutputHandle>(null);
+	const commandInputRef = useRef<CommandInputHandle>(null);
 	const [viewportHeight, setViewportHeight] = useState("100%");
+	const [isAlternateBuffer, setIsAlternateBuffer] = useState(false);
+	const [inputCmd, setInputCmd] = useState("");
 
 	const params = location.state as ConnectionParams;
 
@@ -50,7 +58,6 @@ export function TerminalPage() {
 		};
 	}, []);
 
-
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Setup only once
 	useEffect(() => {
 		if (!params) {
@@ -62,7 +69,8 @@ export function TerminalPage() {
 			// Setup Websocket
 			let wsUrl = API_BASE.replace("http", "ws");
 			if (!wsUrl) {
-				const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+				const protocol =
+					window.location.protocol === "https:" ? "wss:" : "ws:";
 				wsUrl = `${protocol}//${window.location.host}`;
 			}
 			// Append query params for connection
@@ -80,6 +88,10 @@ export function TerminalPage() {
 
 			socket.onopen = () => {
 				shellRef.current?.write("\r\nConnected to server.\r\n");
+				// Auto-focus command input on connection
+				setTimeout(() => {
+					commandInputRef.current?.focus();
+				}, 100);
 			};
 
 			socket.onmessage = (ev) => {
@@ -87,7 +99,9 @@ export function TerminalPage() {
 			};
 
 			socket.onclose = (ev) => {
-				shellRef.current?.write(`\r\nConnection closed. Code: ${ev.code}, Reason: ${ev.reason}\r\n`);
+				shellRef.current?.write(
+					`\r\nConnection closed. Code: ${ev.code}, Reason: ${ev.reason}\r\n`,
+				);
 			};
 
 			socket.onerror = (error) => {
@@ -106,8 +120,8 @@ export function TerminalPage() {
 			clearTimeout(timerId);
 
 			if (
-				socketRef.current && (
-					socketRef.current.readyState === WebSocket.OPEN ||
+				socketRef.current &&
+				(socketRef.current.readyState === WebSocket.OPEN ||
 					socketRef.current.readyState === WebSocket.CONNECTING)
 			) {
 				console.log("Closing socket explicitly");
@@ -125,6 +139,34 @@ export function TerminalPage() {
 		sendMessage({ type: "resize", cols, rows });
 	};
 
+	const handleBufferChange = (isAlt: boolean) => {
+		setIsAlternateBuffer(isAlt);
+	};
+
+	// Logic for executing command
+	const executeCommand = () => {
+		handleData(`${inputCmd}\r`);
+		setInputCmd("");
+	};
+
+	const handleVirtualKey = (key: string) => {
+		// Intercept Enter key from ShortcutBar
+		if (key === "\r") {
+			if (!isAlternateBuffer) {
+				// Normal mode: Send accumulated inputCmd
+				executeCommand();
+			} else {
+				// Interactive mode (vim etc): Send raw Enter
+				handleData("\r");
+			}
+		} else {
+			// Other keys
+			handleData(key);
+		}
+
+		shellRef.current?.focus();
+	};
+
 	return (
 		<div
 			style={{
@@ -134,9 +176,33 @@ export function TerminalPage() {
 				height: viewportHeight,
 				overflow: "hidden", // Prevent initial scrollbars
 				backgroundColor: "black", // Match terminal bg
+				display: "flex",
+				flexDirection: "column",
 			}}
 		>
-			<Shell ref={shellRef} onData={handleData} onResize={handleResize} />
+			{/* Terminal Area (Flex Grow) */}
+			<div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+				<TerminalOutput
+					ref={shellRef}
+					onData={handleData}
+					onResize={handleResize}
+					onBufferChange={handleBufferChange}
+				/>
+			</div>
+
+			{/* Command Input Bar - only visible in normal buffer */}
+			<CommandInput
+				ref={commandInputRef}
+				visible={!isAlternateBuffer}
+				value={inputCmd}
+				onChange={setInputCmd}
+				onEnter={executeCommand}
+			/>
+
+			{/* Shortcut Bar (Always visible) */}
+			<div style={{ flexShrink: 0, width: "100%" }}>
+				<ShortcutBar onKey={handleVirtualKey} />
+			</div>
 		</div>
 	);
 }

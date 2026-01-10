@@ -1,5 +1,6 @@
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 
 interface ConnectFormProps {
     onConnect: (host: string, user: string, port: string, pass?: string) => void;

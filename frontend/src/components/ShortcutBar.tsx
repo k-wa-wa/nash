@@ -3,7 +3,6 @@ import {
 	ArrowLeft,
 	ArrowRight,
 	ArrowUp,
-	CornerDownLeft,
 } from "lucide-react";
 import type React from "react";
 
@@ -11,7 +10,7 @@ interface Props {
 	onKey: (key: string) => void;
 }
 
-export function VirtualKeyboard({ onKey }: Props) {
+export function ShortcutBar({ onKey }: Props) {
 	const btnStyle = {
 		padding: "0",
 		background: "rgba(255, 255, 255, 0.1)",
@@ -32,12 +31,7 @@ export function VirtualKeyboard({ onKey }: Props) {
 		flexShrink: 0,
 	} as React.CSSProperties;
 
-	const enterBtnStyle = {
-		...btnStyle,
-		background: "rgba(37, 99, 235, 0.6)", // Primary color tint
-		borderColor: "rgba(37, 99, 235, 0.4)",
-		minWidth: "52px",
-	};
+
 
 	return (
 		<div
@@ -102,23 +96,6 @@ export function VirtualKeyboard({ onKey }: Props) {
 				</button>
 				{/* Spacer to ensure last item is reachable despite mask */}
 				<div style={{ minWidth: "20px" }} />
-			</div>
-
-			{/* Fixed Enter Key Area */}
-			<div
-				style={{
-					padding: "10px",
-					display: "flex",
-					alignItems: "center",
-					background: "rgba(20, 20, 20, 0.95)", // Solid background to cover scroll
-					borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
-					boxShadow: "-4px 0 10px rgba(0,0,0,0.5)",
-					zIndex: 10,
-				}}
-			>
-				<button type="button" style={enterBtnStyle} onClick={() => onKey("\r")}>
-					<CornerDownLeft size={20} />
-				</button>
 			</div>
 		</div>
 	);

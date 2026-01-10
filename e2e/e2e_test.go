@@ -71,7 +71,7 @@ func TestE2E(t *testing.T) {
 			t.Fatalf("Read error: %v", err)
 		}
 		t.Logf("Received: %s", string(msg))
-		if string(msg) == "\r\nConnected to server...\r\n" {
+		if strings.Contains(string(msg), "~$") || strings.Contains(string(msg), "#") {
 			break
 		}
 	}

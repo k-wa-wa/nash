@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useRef } from "react";
-import { Shell, type ShellHandle } from "../components/Shell";
+import { TerminalOutput, type TerminalOutputHandle } from "../components/TerminalOutput";
 
 const meta = {
-    title: "Components/Shell",
-    component: Shell,
+    title: "Components/TerminalOutput",
+    component: TerminalOutput,
     parameters: {
         layout: "fullscreen",
     },
     tags: ["autodocs"],
-} satisfies Meta<typeof Shell>;
+} satisfies Meta<typeof TerminalOutput>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -18,7 +18,7 @@ const SimulatedSession = ({
     onData,
     lines = 0,
 }: { onData: (data: string) => void; lines?: number }) => {
-    const shellRef = useRef<ShellHandle>(null);
+    const shellRef = useRef<TerminalOutputHandle>(null);
 
     useEffect(() => {
         const shell = shellRef.current;
@@ -27,7 +27,7 @@ const SimulatedSession = ({
         // Base interaction
         const baseSteps = [
             () => shell.write("Connecting to server...\r\n"),
-            () => shell.write("Last login: " + new Date().toLocaleString() + "\r\n"),
+            () => shell.write(`Last login: ${new Date().toLocaleString()}\r\n`),
             () => shell.write("user@nash:~$ "),
             () => shell.write("l"),
             () => shell.write("s"),
@@ -65,7 +65,7 @@ const SimulatedSession = ({
 
     return (
         <div style={{ width: "100%", height: "100%" }}>
-            <Shell ref={shellRef} onData={onData} />
+            <TerminalOutput ref={shellRef} onData={onData} />
         </div>
     );
 };
