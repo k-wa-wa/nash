@@ -5,6 +5,7 @@ import { ConnectForm } from "../components/ConnectForm";
 import { HostList } from "../components/HostList";
 import type { SSHHost } from "../services/api";
 import { fetchHosts } from "../services/api";
+import styles from "./HomePage.module.css";
 
 export function HomePage() {
 	const [hosts, setHosts] = useState<SSHHost[]>([]);
@@ -32,12 +33,12 @@ export function HomePage() {
 
 	return (
 		<div className="container">
-			<h1 style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+			<h1 className={styles.header}>
 				<Terminal size={32} /> nash{" "}
-				<span style={{ fontSize: "0.5em", opacity: 0.5 }}>Mobile SSH</span>
+				<span className={styles.subtitle}>Mobile SSH</span>
 			</h1>
 
-			<section style={{ marginBottom: "30px" }}>
+			<section className={styles.section}>
 				<h2>Available Hosts</h2>
 				<HostList hosts={hosts} onConnect={handleConnectHost} />
 			</section>

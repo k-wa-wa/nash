@@ -7,8 +7,14 @@ build: build-frontend build-backend
 storybook:
 	cd frontend && npm run storybook
 
+build-storybook:
+	cd frontend && npm run build-storybook
+
+test-all: format lint test build-storybook test-e2e
+
 lint:
 	cd frontend && npm run lint
+	cd frontend && npm run typecheck
 	go vet ./...
 
 format:
@@ -27,9 +33,7 @@ unit-test-backend:
 	go list ./... | grep -v /e2e | xargs go test -v
 
 build-frontend:
-	cd frontend && npm install --legacy-peer-deps && npm run build
-	mkdir -p cmd/server/dist
-	cp -R frontend/dist/* cmd/server/dist/
+	cd frontend && npm run build
 
 build-backend:
 	go build -o $(BINARY_NAME) ./cmd/server

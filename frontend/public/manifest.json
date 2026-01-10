@@ -1,16 +1,16 @@
 {
-    "name": "Nash Terminal",
-    "short_name": "Nash",
-    "start_url": ".",
-    "display": "standalone",
-    "background_color": "#000000",
-    "theme_color": "#000000",
-    "orientation": "portrait",
-    "icons": [
-        {
-            "src": "vite.svg",
-            "sizes": "48x48 72x72 96x96 144x144 192x192",
-            "type": "image/svg+xml"
-        }
-    ]
+	"name": "Nash Terminal",
+	"short_name": "Nash",
+	"start_url": ".",
+	"display": "standalone",
+	"background_color": "#000000",
+	"theme_color": "#000000",
+	"orientation": "portrait",
+	"icons": [
+		{
+			"src": "icon.png",
+			"sizes": "1024x1024",
+			"type": "image/png"
+		}
+	]
 }

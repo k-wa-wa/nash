@@ -1,0 +1,16 @@
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.inputGrid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.connectButton {
+	margin-top: 10px;
+	background: #2563eb;
+}

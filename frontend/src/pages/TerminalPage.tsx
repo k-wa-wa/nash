@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CommandInput, type CommandInputHandle } from "../components/CommandInput";
+import {
+	CommandInput,
+	type CommandInputHandle,
+} from "../components/CommandInput";
 import { ShortcutBar } from "../components/ShortcutBar";
 import {
 	TerminalOutput,
@@ -8,6 +11,7 @@ import {
 } from "../components/TerminalOutput";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
+import styles from "./TerminalPage.module.css";
 
 export function TerminalPage() {
 	const location = useLocation();
@@ -35,6 +39,11 @@ export function TerminalPage() {
 
 	// Handle Visual Viewport for mobile keyboards
 	useEffect(() => {
+		// Update title
+		if (params?.host) {
+			document.title = `${params.host} - nash`;
+		}
+
 		const handleResize = () => {
 			if (window.visualViewport) {
 				setViewportHeight(`${window.visualViewport.height}px`);
@@ -51,12 +60,13 @@ export function TerminalPage() {
 		}
 
 		return () => {
+			document.title = "nash - Mobile SSH Client"; // Reset title
 			if (window.visualViewport) {
 				window.visualViewport.removeEventListener("resize", handleResize);
 				window.visualViewport.removeEventListener("scroll", handleResize);
 			}
 		};
-	}, []);
+	}, [params?.host]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Setup only once
 	useEffect(() => {
@@ -69,8 +79,7 @@ export function TerminalPage() {
 			// Setup Websocket
 			let wsUrl = API_BASE.replace("http", "ws");
 			if (!wsUrl) {
-				const protocol =
-					window.location.protocol === "https:" ? "wss:" : "ws:";
+				const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 				wsUrl = `${protocol}//${window.location.host}`;
 			}
 			// Append query params for connection
@@ -168,20 +177,9 @@ export function TerminalPage() {
 	};
 
 	return (
-		<div
-			style={{
-				position: "fixed",
-				inset: 0,
-				width: "100%",
-				height: viewportHeight,
-				overflow: "hidden", // Prevent initial scrollbars
-				backgroundColor: "black", // Match terminal bg
-				display: "flex",
-				flexDirection: "column",
-			}}
-		>
+		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
 			{/* Terminal Area (Flex Grow) */}
-			<div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+			<div className={styles.terminalArea}>
 				<TerminalOutput
 					ref={shellRef}
 					onData={handleData}
@@ -200,7 +198,7 @@ export function TerminalPage() {
 			/>
 
 			{/* Shortcut Bar (Always visible) */}
-			<div style={{ flexShrink: 0, width: "100%" }}>
+			<div className={styles.shortcutContainer}>
 				<ShortcutBar onKey={handleVirtualKey} />
 			</div>
 		</div>

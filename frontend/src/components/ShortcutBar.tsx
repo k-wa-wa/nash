@@ -1,9 +1,4 @@
-import {
-	ArrowDown,
-	ArrowLeft,
-	ArrowRight,
-	ArrowUp,
-} from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react";
 import type React from "react";
 
 interface Props {
@@ -31,8 +26,6 @@ export function ShortcutBar({ onKey }: Props) {
 		flexShrink: 0,
 	} as React.CSSProperties;
 
-
-
 	return (
 		<div
 			style={{
@@ -55,8 +48,7 @@ export function ShortcutBar({ onKey }: Props) {
 					flexGrow: 1,
 					scrollbarWidth: "none",
 					msOverflowStyle: "none",
-					maskImage:
-						"linear-gradient(to right, black 85%, transparent 100%)", // Fade out effect
+					maskImage: "linear-gradient(to right, black 85%, transparent 100%)", // Fade out effect
 					WebkitMaskImage:
 						"linear-gradient(to right, black 85%, transparent 100%)",
 					alignItems: "center",

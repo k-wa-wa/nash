@@ -1,0 +1,14 @@
+.header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.subtitle {
+	font-size: 0.5em;
+	opacity: 0.5;
+}
+
+.section {
+	margin-bottom: 30px;
+}

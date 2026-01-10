@@ -10,10 +10,15 @@ NashのターミナルUIは、モバイルファーストを意識したレイ�
 
 ```text
 +-------------------------------------------------------+
-|  $ Connected to server...                             |
+|  Connected to server...                               |
 |  $ ls -la                                             | Area: TerminalOutput
 |  drwxr-xr-x  2 user  staff   64 Jan 10 12:00 .        | File: src/components/TerminalOutput.tsx
 |  $ _                                                  | Desc: ログ表示とxterm端末エリア
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
 |                                                       |
 +-------------------------------------------------------+
 |                                                       | Area: CommandInput
@@ -23,6 +28,11 @@ NashのターミナルUIは、モバイルファーストを意識したレイ�
 |                                                       | Area: ShortcutBar
 |  [ESC] [TAB] [CTRL-C] [↑] [↓] ...                     | File: src/components/ShortcutBar.tsx
 |                                                       | Desc: 補助キー(常に最下部に固定)
++-------------------------------------------------------+
+|                                                       |
+|                      キーボード                         |
+|                                                       |
+|                                                       |
 +-------------------------------------------------------+
 ```
 

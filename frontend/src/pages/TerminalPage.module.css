@@ -1,0 +1,20 @@
+.pageContainer {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	overflow: hidden;
+	background-color: black;
+	display: flex;
+	flex-direction: column;
+}
+
+.terminalArea {
+	flex: 1;
+	position: relative;
+	min-height: 0;
+}
+
+.shortcutContainer {
+	flex-shrink: 0;
+	width: 100%;
+}
