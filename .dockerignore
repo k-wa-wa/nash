@@ -1,0 +1,15 @@
+.git
+.gitignore
+.github
+agent-logs
+frontend/node_modules
+frontend/.storybook
+frontend/storybook-static
+frontend/coverage
+cmd/server/dist
+dist
+nash
+.env
+.env.*
+*.md
+Makefile
