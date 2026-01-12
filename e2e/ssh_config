@@ -1,0 +1,10 @@
+Host nash-mock-pass
+    HostName localhost
+    User testuser
+    Port 2222
+
+Host nash-mock-key
+    HostName localhost
+    User keyuser
+    Port 2222
+    IdentityFile e2e/keys/id_rsa

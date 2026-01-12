@@ -15,7 +15,7 @@ export function HomePage() {
 		fetchHosts().then(setHosts);
 	}, []);
 
-	const connect = (host: string, user: string, port: string, pass?: string) => {
+	const connect = (host: string, user: string, port: string, pass?: string, identityFile?: string) => {
 		navigate("/terminal", {
 			state: {
 				host,
@@ -23,12 +23,13 @@ export function HomePage() {
 				port,
 				password: pass,
 				authType: pass ? "password" : "none",
+				identityFile,
 			},
 		});
 	};
 
 	const handleConnectHost = (host: SSHHost) => {
-		connect(host.HostName, host.User || "root", host.Port || "22");
+		connect(host.HostName, host.User || "root", host.Port || "22", undefined, host.IdentityFile);
 	};
 
 	return (

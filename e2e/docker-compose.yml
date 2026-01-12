@@ -1,9 +1,11 @@
 version: '3'
 services:
   sshd:
-    build: ./ssh_server
+    build: 
+      context: .
+      dockerfile: ssh_server/Dockerfile
     ports:
       - "2222:22"
     environment:
       - SSH_USER=testuser
-      - SSH_PASSWORD=testpass
+      - SSH_PASSWORD=password

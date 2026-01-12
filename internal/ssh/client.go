@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -12,30 +13,50 @@ import (
 // Client represents an SSH client connection.
 type Client struct {
 	*ssh.Client
-	Host    string
-	Port    int
-	User    string
-	Pass    string
-	session *ssh.Session
+	Host         string
+	Port         int
+	User         string
+	Pass         string
+	IdentityFile string
+	session      *ssh.Session
 }
 
 // NewClient creates a new SSH client.
-func NewClient(host string, port int, user, pass string) *Client {
+func NewClient(host string, port int, user, pass, identityFile string) *Client {
 	return &Client{
-		Host: host,
-		Port: port,
-		User: user,
-		Pass: pass,
+		Host:         host,
+		Port:         port,
+		User:         user,
+		Pass:         pass,
+		IdentityFile: identityFile,
 	}
 }
 
 // Connect establishes an SSH connection.
 func (c *Client) Connect() error {
+	var authMethods []ssh.AuthMethod
+
+	if c.IdentityFile != "" {
+		key, err := os.ReadFile(c.IdentityFile)
+		if err == nil {
+			signer, err := ssh.ParsePrivateKey(key)
+			if err == nil {
+				authMethods = append(authMethods, ssh.PublicKeys(signer))
+			} else {
+				log.Printf("Failed to parse private key %s: %v", c.IdentityFile, err)
+			}
+		} else {
+			log.Printf("Failed to read identity file %s: %v", c.IdentityFile, err)
+		}
+	}
+
+	if c.Pass != "" {
+		authMethods = append(authMethods, ssh.Password(c.Pass))
+	}
+
 	config := &ssh.ClientConfig{
-		User: c.User,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(c.Pass),
-		},
+		User:            c.User,
+		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 開発中はホストキーチェックを無効化
 		Timeout:         5 * time.Second,
 	}

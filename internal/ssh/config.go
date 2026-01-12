@@ -8,10 +8,11 @@ import (
 )
 
 type HostEntry struct {
-	Host     string `json:"Host"`
-	HostName string `json:"HostName"`
-	User     string `json:"User,omitempty"`
-	Port     string `json:"Port,omitempty"`
+	Host         string `json:"Host"`
+	HostName     string `json:"HostName"`
+	User         string `json:"User,omitempty"`
+	Port         string `json:"Port,omitempty"`
+	IdentityFile string `json:"IdentityFile,omitempty"`
 }
 
 func ParseConfig(customPath string) ([]HostEntry, error) {
@@ -57,14 +58,15 @@ func ParseConfig(customPath string) ([]HostEntry, error) {
 			// Wildcards are often used in config (e.g. Host *), skip them for this list or handle?
 			// For simple UI, we might want to list concrete hosts.
 			// Let's list all for now, but UI might filter.
+			if current != nil {
+				hosts = append(hosts, *current)
+				current = nil // Reset current so we don't append it again later if we skip
+			}
+
 			if strings.Contains(value, "*") || strings.Contains(value, "?") {
-				current = nil
 				continue
 			}
 
-			if current != nil {
-				hosts = append(hosts, *current)
-			}
 			current = &HostEntry{Host: value}
 		} else if current != nil {
 			switch key {
@@ -74,6 +76,13 @@ func ParseConfig(customPath string) ([]HostEntry, error) {
 				current.User = value
 			case "port":
 				current.Port = value
+			case "identityfile":
+				// Handle ~ expansion
+				if strings.HasPrefix(value, "~/") {
+					home, _ := os.UserHomeDir()
+					value = filepath.Join(home, value[2:])
+				}
+				current.IdentityFile = value
 			}
 		}
 	}

@@ -40,7 +40,7 @@ func TestRepeatedInvalidConnections(t *testing.T) {
 func TestConcurrentValidConnections(t *testing.T) {
 	// This assumes the e2e-sshd container is running and exposed on 2222
 	// AND the nash server is running on 8080
-	serverURL := "ws://localhost:8080/ws?host=localhost&port=2222&user=testuser&pass=testpass"
+	serverURL := "ws://localhost:8080/ws?host=localhost&port=2222&user=testuser&pass=password"
 
 	var wg sync.WaitGroup
 	count := 5
@@ -66,7 +66,7 @@ func TestConcurrentValidConnections(t *testing.T) {
 				t.Errorf("Client %d failed read: %v", id, err)
 				return
 			}
-			t.Logf("Client %d got: %s", id, string(msg))
+			t.Logf("Client %d got: %q", id, string(msg))
 		}(i)
 	}
 	wg.Wait()

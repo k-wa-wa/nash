@@ -22,7 +22,17 @@ format:
 	go fmt ./...
 
 test-e2e:
-	cd e2e && go test -v e2e_test.go
+	cd e2e && go test -v .
+
+mock-up:
+	cd e2e && docker compose up -d --build
+	@echo "SSH Server started on localhost:2222"
+	@echo "  User: testuser, Pass: password"
+	@echo "  User: keyuser, Key: e2e/keys/id_rsa"
+	@echo "Mock config created at e2e/ssh_config"
+
+mock-down:
+	cd e2e && docker compose down
 
 test: unit-test-frontend unit-test-backend
 
@@ -42,7 +52,7 @@ run:
 	@echo "Starting dev environment (Frontend on :5173, Backend on :8080)..."
 	@trap 'kill 0' EXIT; \
 	(cd frontend && npm run dev -- --host) & \
-	DEV_MODE=true air
+	DEV_MODE=true air -- -config e2e/ssh_config
 
 clean:
 	rm -rf cmd/server/dist

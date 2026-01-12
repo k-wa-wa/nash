@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/skip2/go-qrcode"
@@ -43,6 +44,10 @@ func handleHosts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("DEBUG: Serving %d hosts", len(hosts))
+	for _, h := range hosts {
+		log.Printf("DEBUG: Host: %+v", h)
+	}
 	json.NewEncoder(w).Encode(hosts)
 }
 
@@ -60,6 +65,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	portStr := query.Get("port")
 	user := query.Get("user")
 	pass := query.Get("pass")
+	identityFile := query.Get("identity_file")
+
+	log.Printf("DEBUG: WS Query params - host: '%s', port: '%s', user: '%s', identity_file: '%s'", host, portStr, user, identityFile)
 
 	if host == "" || user == "" {
 		conn.WriteMessage(websocket.TextMessage, []byte("Error: Missing host or user parameters"))
@@ -73,10 +81,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Connecting to %s@%s:%d", user, host, port)
 
-	sshClient := ssh.NewClient(host, port, user, pass)
+	sshClient := ssh.NewClient(host, port, user, pass, identityFile)
 	if err := sshClient.Connect(); err != nil {
 		log.Printf("Failed to connect to SSH: %v", err)
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))
+		if strings.Contains(err.Error(), "unable to authenticate") {
+			conn.WriteMessage(websocket.TextMessage, []byte("AUTH_REQUIRED"))
+		} else {
+			conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))
+		}
 		return
 	}
 	defer sshClient.Close()

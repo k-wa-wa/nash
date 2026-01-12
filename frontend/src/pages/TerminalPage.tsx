@@ -9,6 +9,7 @@ import {
 	TerminalOutput,
 	type TerminalOutputHandle,
 } from "../components/TerminalOutput";
+import { PasswordModal } from "../components/PasswordModal";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 import styles from "./TerminalPage.module.css";
@@ -23,7 +24,10 @@ export function TerminalPage() {
 	const [isAlternateBuffer, setIsAlternateBuffer] = useState(false);
 	const [inputCmd, setInputCmd] = useState("");
 
-	const params = location.state as ConnectionParams;
+	const [connectionParams, setConnectionParams] = useState<ConnectionParams>(
+		location.state as ConnectionParams,
+	);
+	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
 	// Helper to send messages
 	const sendMessage = (msg: {
@@ -40,8 +44,8 @@ export function TerminalPage() {
 	// Handle Visual Viewport for mobile keyboards
 	useEffect(() => {
 		// Update title
-		if (params?.host) {
-			document.title = `${params.host} - nash`;
+		if (connectionParams?.host) {
+			document.title = `${connectionParams.host} - nash`;
 		}
 
 		const handleResize = () => {
@@ -66,11 +70,11 @@ export function TerminalPage() {
 				window.visualViewport.removeEventListener("scroll", handleResize);
 			}
 		};
-	}, [params?.host]);
+	}, [connectionParams?.host]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Setup only once
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Re-connect when connectionParams change
 	useEffect(() => {
-		if (!params) {
+		if (!connectionParams) {
 			navigate("/");
 			return;
 		}
@@ -84,10 +88,11 @@ export function TerminalPage() {
 			}
 			// Append query params for connection
 			const query = new URLSearchParams({
-				host: params.host || "",
-				port: params.port || "22",
-				user: params.user || "",
-				pass: params.password || "",
+				host: connectionParams.host || "",
+				port: connectionParams.port || "22",
+				user: connectionParams.user || "",
+				pass: connectionParams.password || "",
+				identity_file: connectionParams.identityFile || "",
 			});
 
 			const fullUrl = `${wsUrl}/ws?${query.toString()}`;
@@ -104,10 +109,16 @@ export function TerminalPage() {
 			};
 
 			socket.onmessage = (ev) => {
-				shellRef.current?.write(ev.data);
+				if (ev.data === "AUTH_REQUIRED") {
+					setIsPasswordModalOpen(true);
+					shellRef.current?.write("\r\nPassword authentication required.\r\n");
+				} else {
+					shellRef.current?.write(ev.data);
+				}
 			};
 
 			socket.onclose = (ev) => {
+				// 1000: Normal Closure, 1006: Abnormal Closure
 				shellRef.current?.write(
 					`\r\nConnection closed. Code: ${ev.code}, Reason: ${ev.reason}\r\n`,
 				);
@@ -121,11 +132,14 @@ export function TerminalPage() {
 
 		// Debounce connection to handle React Strict Mode double-mount
 		const timerId = setTimeout(() => {
+			// Close existing if any
+			if (socketRef.current) {
+				socketRef.current.close();
+			}
 			connect();
 		}, 50);
 
 		return () => {
-			// If unmount happens quickly (Strict Mode), clear timeout and don't connect
 			clearTimeout(timerId);
 
 			if (
@@ -138,7 +152,7 @@ export function TerminalPage() {
 			}
 			socketRef.current = null;
 		};
-	}, []);
+	}, [connectionParams, navigate]);
 
 	const handleData = (data: string) => {
 		sendMessage({ type: "data", payload: data });
@@ -176,6 +190,11 @@ export function TerminalPage() {
 		shellRef.current?.focus();
 	};
 
+	const handlePasswordSubmit = (password: string) => {
+		setConnectionParams((prev) => ({ ...prev, password }));
+		setIsPasswordModalOpen(false);
+	};
+
 	return (
 		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
 			{/* Terminal Area (Flex Grow) */}
@@ -201,6 +220,12 @@ export function TerminalPage() {
 			<div className={styles.shortcutContainer}>
 				<ShortcutBar onKey={handleVirtualKey} />
 			</div>
+
+			<PasswordModal
+				isOpen={isPasswordModalOpen}
+				onSubmit={handlePasswordSubmit}
+				onCancel={() => navigate("/")}
+			/>
 		</div>
 	);
 }
