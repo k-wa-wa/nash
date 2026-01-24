@@ -160,6 +160,8 @@ export function TerminalPage() {
 
 	const handleData = (data: string) => {
 		sendMessage({ type: "data", payload: data });
+		// When inputting data (from ShortcutBar or elsewhere), scroll to bottom
+		shellRef.current?.scrollToBottom();
 	};
 
 	const handleResize = (cols: number, rows: number) => {
@@ -174,6 +176,14 @@ export function TerminalPage() {
 	const executeCommand = () => {
 		handleData(`${inputCmd}\r`);
 		setInputCmd("");
+	};
+
+	const handleInputChange = (val: string) => {
+		setInputCmd(val);
+		// When typing in CommandInput, scroll to bottom
+		if (val.length > 0) {
+			shellRef.current?.scrollToBottom();
+		}
 	};
 
 	const handleVirtualKey = (key: string) => {
@@ -225,7 +235,7 @@ export function TerminalPage() {
 				ref={commandInputRef}
 				visible={!isAlternateBuffer}
 				value={inputCmd}
-				onChange={setInputCmd}
+				onChange={handleInputChange}
 				onEnter={executeCommand}
 			/>
 

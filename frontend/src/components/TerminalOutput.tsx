@@ -6,6 +6,7 @@ import React, { useEffect, useImperativeHandle, useRef } from "react";
 export interface TerminalOutputHandle {
 	write: (data: string | Uint8Array) => void;
 	focus: () => void;
+	scrollToBottom: () => void;
 	dispose: () => void;
 }
 
@@ -129,6 +130,7 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 			() => ({
 				write: (data) => termInstanceRef.current?.write(data),
 				focus: () => termInstanceRef.current?.focus(),
+				scrollToBottom: () => termInstanceRef.current?.scrollToBottom(),
 				dispose: () => termInstanceRef.current?.dispose(),
 			}),
 			[],
