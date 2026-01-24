@@ -13,10 +13,11 @@ interface Props {
 	onData: (data: string) => void;
 	onResize?: (cols: number, rows: number) => void;
 	onBufferChange?: (isAlternate: boolean) => void;
+	onClick?: () => void;
 }
 
 export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
-	({ onData, onResize, onBufferChange }, ref) => {
+	({ onData, onResize, onBufferChange, onClick }, ref) => {
 		const terminalRef = useRef<HTMLDivElement>(null);
 		const termInstanceRef = useRef<Terminal | null>(null);
 
@@ -24,6 +25,7 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 		useEffect(() => {
 			const term = new Terminal({
 				cursorBlink: true,
+				cursorInactiveStyle: "block",
 				fontSize: 14,
 				fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 				theme: {
@@ -133,7 +135,9 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 		);
 
 		return (
+			// biome-ignore lint/a11y/useKeyWithClickEvents: Terminal interaction handled internally
 			<div
+				onClick={onClick}
 				style={{
 					height: "100%",
 					width: "100%",

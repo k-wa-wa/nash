@@ -102,6 +102,10 @@ export function TerminalPage() {
 
 			socket.onopen = () => {
 				shellRef.current?.write("\r\nConnected to server.\r\n");
+
+				// Ensure terminal feels active
+				shellRef.current?.focus();
+
 				// Auto-focus command input on connection
 				setTimeout(() => {
 					commandInputRef.current?.focus();
@@ -195,6 +199,14 @@ export function TerminalPage() {
 		setIsPasswordModalOpen(false);
 	};
 
+	// Handle clicking on terminal to focus input
+	const handleTerminalClick = () => {
+		// Only focus input if NOT in alternate buffer (e.g. not in vim)
+		if (!isAlternateBuffer) {
+			commandInputRef.current?.focus();
+		}
+	};
+
 	return (
 		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
 			{/* Terminal Area (Flex Grow) */}
@@ -204,6 +216,7 @@ export function TerminalPage() {
 					onData={handleData}
 					onResize={handleResize}
 					onBufferChange={handleBufferChange}
+					onClick={handleTerminalClick}
 				/>
 			</div>
 
