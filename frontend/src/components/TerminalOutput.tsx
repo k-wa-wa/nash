@@ -30,6 +30,7 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 					background: "#0a0a0a",
 					foreground: "#f0f0f0",
 				},
+				allowProposedApi: true,
 			});
 
 			const fitAddon = new FitAddon();
@@ -45,13 +46,9 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 				}
 			});
 
-			// Monitor buffer changes (Normal vs Alternate)
 			if (onBufferChange) {
-				// Initial check
 				onBufferChange(term.buffer.active.type === "alternate");
-
 				term.onRender(() => {
-					// Check if buffer type changed
 					const isAlt = term.buffer.active.type === "alternate";
 					onBufferChange(isAlt);
 				});
@@ -63,9 +60,42 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 			}
 			termInstanceRef.current = term;
 
+			// --- モバイル用スクロール処理 ---
+			let startY = 0;
+			const handleTouchStart = (e: TouchEvent) => {
+				startY = e.touches[0].pageY;
+			};
+
+			const handleTouchMove = (e: TouchEvent) => {
+				if (!termInstanceRef.current) return;
+
+				// 代替バッファ（vim/less等）使用中は、xterm側がアプリ内操作として
+				// 処理を拾うべきなので、手動スクロールをスキップする選択肢もあります。
+				// ここでは通常のスクロールバックがある場合のみ動作させます。
+				if (termInstanceRef.current.buffer.active.type === "alternate") return;
+
+				const currentY = e.touches[0].pageY;
+				const diffY = startY - currentY;
+				const lineHeight = 18; // 14px fontSize + alpha
+				const linesToScroll = Math.trunc(diffY / lineHeight);
+
+				if (linesToScroll !== 0) {
+					termInstanceRef.current.scrollLines(linesToScroll);
+					startY -= linesToScroll * lineHeight;
+				}
+
+				if (e.cancelable) e.preventDefault();
+			};
+
+			const container = terminalRef.current;
+			if (container) {
+				container.addEventListener("touchstart", handleTouchStart, { passive: false });
+				container.addEventListener("touchmove", handleTouchMove, { passive: false });
+			}
+			// -----------------------------
+
 			const resizeObserver = new ResizeObserver(() => {
 				fitAddon.fit();
-				// Trigger resize event after fit
 				if (onResize) {
 					onResize(term.cols, term.rows);
 				}
@@ -75,7 +105,6 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 				resizeObserver.observe(terminalRef.current);
 			}
 
-			// Initial resize notification
 			if (onResize) {
 				setTimeout(() => {
 					onResize(term.cols, term.rows);
@@ -83,6 +112,10 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 			}
 
 			return () => {
+				if (container) {
+					container.removeEventListener("touchstart", handleTouchStart);
+					container.removeEventListener("touchmove", handleTouchMove);
+				}
 				resizeObserver.disconnect();
 				term.dispose();
 				termInstanceRef.current = null;
@@ -92,21 +125,9 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 		useImperativeHandle(
 			ref,
 			() => ({
-				write: (data) => {
-					if (termInstanceRef.current) {
-						termInstanceRef.current.write(data);
-					}
-				},
-				focus: () => {
-					if (termInstanceRef.current) {
-						termInstanceRef.current.focus();
-					}
-				},
-				dispose: () => {
-					if (termInstanceRef.current) {
-						termInstanceRef.current.dispose();
-					}
-				},
+				write: (data) => termInstanceRef.current?.write(data),
+				focus: () => termInstanceRef.current?.focus(),
+				dispose: () => termInstanceRef.current?.dispose(),
 			}),
 			[],
 		);
@@ -119,6 +140,7 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 					backgroundColor: "black",
 					overflow: "hidden",
 					position: "relative",
+					touchAction: "none", // ブラウザのデフォルト挙動を抑制
 				}}
 			>
 				<div ref={terminalRef} style={{ width: "100%", height: "100%" }} />
