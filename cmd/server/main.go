@@ -16,6 +16,7 @@ import (
 
 	"github.com/skip2/go-qrcode"
 
+	"nash/internal/ai"
 	"nash/internal/ssh"
 	"nash/internal/ws"
 
@@ -37,7 +38,13 @@ var upgrader = websocket.Upgrader{
 
 func handleHosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == "OPTIONS" {
+		return
+	}
 
 	hosts, err := ssh.ParseConfig(configPath)
 	if err != nil {
@@ -49,6 +56,42 @@ func handleHosts(w http.ResponseWriter, r *http.Request) {
 		log.Printf("DEBUG: Host: %+v", h)
 	}
 	json.NewEncoder(w).Encode(hosts)
+}
+
+func handleSummarize(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ai.SummarizeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Text == "" {
+		http.Error(w, "Empty text", http.StatusBadRequest)
+		return
+	}
+
+	summary, err := ai.Summarize(req.Text)
+	if err != nil {
+		log.Printf("AI Summary Error: %v", err)
+		http.Error(w, fmt.Sprintf("AI Summary Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -137,6 +180,7 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.FS(fsys)))
 	http.HandleFunc("/api/hosts", handleHosts)
+	http.HandleFunc("/api/summarize", handleSummarize)
 	http.HandleFunc("/ws", handleWebSocket)
 
 	port := 8080

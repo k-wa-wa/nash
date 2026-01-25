@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 [build]
 cmd = "go build -o ./tmp/main ./cmd/server"
 bin = "./tmp/main"
-full_bin = ""
+full_bin = "AI_ENDPOINT=http://localhost:11434/v1 AI_API_KEY=dummy AI_MODEL=llama3.2 ./tmp/main"
 include_ext = ["go", "tpl", "tmpl", "html", "css", "js"]
 exclude_dir = ["assets", "tmp", "vendor", "testdata", "frontend", "e2e"]
 include_dir = ["cmd/server/dist"]

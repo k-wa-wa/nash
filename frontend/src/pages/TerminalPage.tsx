@@ -10,6 +10,7 @@ import {
 	type TerminalOutputHandle,
 } from "../components/TerminalOutput";
 import { PasswordModal } from "../components/PasswordModal";
+import { AiSummaryOverlay } from "../components/AiSummaryOverlay";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 import styles from "./TerminalPage.module.css";
@@ -28,6 +29,24 @@ export function TerminalPage() {
 		location.state as ConnectionParams,
 	);
 	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+	// AI Summary state
+	const [aiEnabled, setAiEnabled] = useState(true); // localStorageから読み込み
+	const aiEnabledRef = useRef(true);
+	const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+	const [summary, setSummary] = useState("");
+	const [isSummarizing, setIsSummarizing] = useState(false);
+	const lastOutputRef = useRef("");
+
+	// Load AI setting from localStorage
+	useEffect(() => {
+		const saved = localStorage.getItem("aiSummaryEnabled");
+		if (saved !== null) {
+			const enabled = saved === "true";
+			setAiEnabled(enabled);
+			aiEnabledRef.current = enabled;
+		}
+	}, []);
 
 	// Helper to send messages
 	const sendMessage = (msg: {
@@ -71,6 +90,11 @@ export function TerminalPage() {
 			}
 		};
 	}, [connectionParams?.host]);
+
+	// Sync aiEnabled state to ref for closure access
+	useEffect(() => {
+		aiEnabledRef.current = aiEnabled;
+	}, [aiEnabled]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Re-connect when connectionParams change
 	useEffect(() => {
@@ -118,6 +142,8 @@ export function TerminalPage() {
 					shellRef.current?.write("\r\nPassword authentication required.\r\n");
 				} else {
 					shellRef.current?.write(ev.data);
+					// 出力を蓄積し、一定時間停止したら要約を実行する
+					handleNewOutput(ev.data);
 				}
 			};
 
@@ -174,6 +200,8 @@ export function TerminalPage() {
 
 	// Logic for executing command
 	const executeCommand = () => {
+		// コマンド実行の開始地点にマーカーを設置
+		shellRef.current?.registerCommandMarker();
 		handleData(`${inputCmd}\r`);
 		setInputCmd("");
 	};
@@ -209,6 +237,74 @@ export function TerminalPage() {
 		setIsPasswordModalOpen(false);
 	};
 
+	// AI Summary logic
+	const summarizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const handleNewOutput = (data: string) => {
+		console.log('[AI Summary] handleNewOutput called', { aiEnabled: aiEnabledRef.current, dataLength: data.length });
+		if (!aiEnabledRef.current) {
+			console.log('[AI Summary] AI is disabled, skipping');
+			return;
+		}
+
+		lastOutputRef.current += data;
+
+		if (summarizeTimerRef.current) {
+			clearTimeout(summarizeTimerRef.current);
+		}
+
+		summarizeTimerRef.current = setTimeout(() => {
+			console.log('[AI Summary] Timer triggered, checking conditions...');
+			checkAndSummarize();
+		}, 1000); // 1秒間出力が止まったら要約を検討
+	};
+
+	const checkAndSummarize = async () => {
+		console.log('[AI Summary] checkAndSummarize called', { aiEnabled: aiEnabledRef.current, isSummarizing });
+		if (!aiEnabledRef.current || isSummarizing) return;
+
+		// マーカーベースの出力を取得（引数なしでマーカー優先）
+		const bufferText = shellRef.current?.getBufferText() || "";
+		console.group('[AI Summary] API Request Details');
+		console.log('Buffer Text Length:', bufferText.length);
+		console.log('--- FULL BUFFER START ---');
+		console.log(bufferText);
+		console.log('--- FULL BUFFER END ---');
+		console.groupEnd();
+
+		if (bufferText.length < 20) {
+			console.log('[AI Summary] Text too short, skipping');
+			lastOutputRef.current = "";
+			return;
+		}
+
+		console.log('[AI Summary] Calling API...');
+		setIsSummarizing(true);
+		setSummary("");
+		setIsOverlayOpen(true); // 呼び出し開始時にオーバーレイを表示
+
+		try {
+			const response = await fetch(`${API_BASE}/api/summarize`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ text: bufferText }),
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				console.log('[AI Summary] Success:', data.summary);
+				setSummary(data.summary);
+				setIsOverlayOpen(true); // 要約完了時に自動で開く
+			} else {
+				console.error("[AI Summary] API failed with status:", response.status);
+			}
+		} catch (err) {
+			console.error("[AI Summary] Error:", err);
+		} finally {
+			setIsSummarizing(false);
+			lastOutputRef.current = "";
+		}
+	};
+
 	// Handle clicking on terminal to focus input
 	const handleTerminalClick = () => {
 		// Only focus input if NOT in alternate buffer (e.g. not in vim)
@@ -219,8 +315,30 @@ export function TerminalPage() {
 
 	return (
 		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
+			{/* Top Actions */}
+			{!isAlternateBuffer && (
+				<div className={styles.topRightActions}>
+					<button
+						type="button"
+						className={styles.aiButton}
+						onClick={() => setIsOverlayOpen(!isOverlayOpen)}
+						aria-label="AI Summary"
+					>
+						AI
+					</button>
+				</div>
+			)}
+
 			{/* Terminal Area (Flex Grow) */}
 			<div className={styles.terminalArea}>
+				{/* AI Summary Overlay */}
+				<AiSummaryOverlay
+					isOpen={isOverlayOpen}
+					summary={summary}
+					isLoading={isSummarizing}
+					onClose={() => setIsOverlayOpen(false)}
+				/>
+
 				<TerminalOutput
 					ref={shellRef}
 					onData={handleData}

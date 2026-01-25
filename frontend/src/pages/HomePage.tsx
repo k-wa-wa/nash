@@ -1,4 +1,4 @@
-import { Terminal } from "lucide-react";
+import { Terminal, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ConnectForm } from "../components/ConnectForm";
@@ -34,10 +34,20 @@ export function HomePage() {
 
 	return (
 		<div className="container">
-			<h1 className={styles.header}>
-				<Terminal size={32} /> nash{" "}
-				<span className={styles.subtitle}>Mobile SSH</span>
-			</h1>
+			<div className={styles.headerContainer}>
+				<h1 className={styles.header}>
+					<Terminal size={32} /> nash{" "}
+					<span className={styles.subtitle}>Mobile SSH</span>
+				</h1>
+				<button
+					type="button"
+					className={styles.settingsButton}
+					onClick={() => navigate("/settings")}
+					aria-label="設定"
+				>
+					<Settings size={24} />
+				</button>
+			</div>
 
 			<section className={styles.section}>
 				<h2>Available Hosts</h2>
