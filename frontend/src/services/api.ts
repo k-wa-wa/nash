@@ -12,6 +12,7 @@ export type ConnectionParams = {
 	user?: string;
 	password?: string;
 	identityFile?: string;
+	identityKey?: string;
 };
 
 // In dev (vite proxy) or prod (same origin), utilize relative paths.

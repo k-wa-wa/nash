@@ -10,6 +10,24 @@
 	gap: 10px;
 }
 
+.fileInputWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+.fileLabel {
+	font-size: 0.85rem;
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.fileInput {
+	font-size: 0.9rem;
+	padding: 4px 0;
+	cursor: pointer;
+}
+
 .connectButton {
 	margin-top: 10px;
 	background: #2563eb;

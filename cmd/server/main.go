@@ -109,6 +109,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	user := query.Get("user")
 	pass := query.Get("pass")
 	identityFile := query.Get("identity_file")
+	identityKey := query.Get("identity_key")
 
 	log.Printf("DEBUG: WS Query params - host: '%s', port: '%s', user: '%s', identity_file: '%s'", host, portStr, user, identityFile)
 
@@ -122,9 +123,59 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		port = 22
 	}
 
+	// Auth types
+	type AuthMessage struct {
+		Type    string          `json:"type"`
+		Payload json.RawMessage `json:"payload"`
+	}
+	type ChallengePayload struct {
+		Instruction string   `json:"instruction"`
+		Questions   []string `json:"questions"`
+		Echos       []bool   `json:"echos"`
+	}
+	type AuthResponsePayload struct {
+		Answers []string `json:"answers"`
+	}
+
+	challengeHandler := func(instruction string, questions []string, echos []bool) ([]string, error) {
+		payload := ChallengePayload{
+			Instruction: instruction,
+			Questions:   questions,
+			Echos:       echos,
+		}
+		payloadBytes, _ := json.Marshal(payload)
+		msg := AuthMessage{
+			Type:    "AUTH_CHALLENGE",
+			Payload: payloadBytes,
+		}
+
+		if err := conn.WriteJSON(msg); err != nil {
+			return nil, err
+		}
+
+		// Wait for response, ignoring other message types (like resize or data)
+		for {
+			var res AuthMessage
+			if err := conn.ReadJSON(&res); err != nil {
+				return nil, err
+			}
+
+			if res.Type == "AUTH_RESPONSE" {
+				var resPayload AuthResponsePayload
+				if err := json.Unmarshal(res.Payload, &resPayload); err != nil {
+					return nil, err
+				}
+				return resPayload.Answers, nil
+			}
+
+			// Ignore other message types during auth handshake
+			log.Printf("DEBUG: Ignored message type during auth: %s", res.Type)
+		}
+	}
+
 	log.Printf("Connecting to %s@%s:%d", user, host, port)
 
-	sshClient := ssh.NewClient(host, port, user, pass, identityFile)
+	sshClient := ssh.NewClient(host, port, user, pass, identityFile, identityKey, challengeHandler)
 	if err := sshClient.Connect(); err != nil {
 		log.Printf("Failed to connect to SSH: %v", err)
 		if strings.Contains(err.Error(), "unable to authenticate") {

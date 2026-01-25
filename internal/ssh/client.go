@@ -10,25 +10,32 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// ChallengeHandler is a function that handles keyboard interactive challenges.
+type ChallengeHandler func(instruction string, questions []string, echos []bool) ([]string, error)
+
 // Client represents an SSH client connection.
 type Client struct {
 	*ssh.Client
-	Host         string
-	Port         int
-	User         string
-	Pass         string
-	IdentityFile string
-	session      *ssh.Session
+	Host             string
+	Port             int
+	User             string
+	Pass             string
+	IdentityFile     string
+	IdentityKey      string
+	ChallengeHandler ChallengeHandler
+	session          *ssh.Session
 }
 
 // NewClient creates a new SSH client.
-func NewClient(host string, port int, user, pass, identityFile string) *Client {
+func NewClient(host string, port int, user, pass, identityFile, identityKey string, handler ChallengeHandler) *Client {
 	return &Client{
-		Host:         host,
-		Port:         port,
-		User:         user,
-		Pass:         pass,
-		IdentityFile: identityFile,
+		Host:             host,
+		Port:             port,
+		User:             user,
+		Pass:             pass,
+		IdentityFile:     identityFile,
+		IdentityKey:      identityKey,
+		ChallengeHandler: handler,
 	}
 }
 
@@ -36,7 +43,14 @@ func NewClient(host string, port int, user, pass, identityFile string) *Client {
 func (c *Client) Connect() error {
 	var authMethods []ssh.AuthMethod
 
-	if c.IdentityFile != "" {
+	if c.IdentityKey != "" {
+		signer, err := ssh.ParsePrivateKey([]byte(c.IdentityKey))
+		if err == nil {
+			authMethods = append(authMethods, ssh.PublicKeys(signer))
+		} else {
+			log.Printf("Failed to parse private key content: %v", err)
+		}
+	} else if c.IdentityFile != "" {
 		key, err := os.ReadFile(c.IdentityFile)
 		if err == nil {
 			signer, err := ssh.ParsePrivateKey(key)
@@ -54,11 +68,17 @@ func (c *Client) Connect() error {
 		authMethods = append(authMethods, ssh.Password(c.Pass))
 	}
 
+	if c.ChallengeHandler != nil {
+		authMethods = append(authMethods, ssh.KeyboardInteractive(func(user, instruction string, questions []string, echos []bool) (answers []string, err error) {
+			return c.ChallengeHandler(instruction, questions, echos)
+		}))
+	}
+
 	config := &ssh.ClientConfig{
 		User:            c.User,
 		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 開発中はホストキーチェックを無効化
-		Timeout:         5 * time.Second,
+		Timeout:         30 * time.Second,            // インタラクティブ認証のためにタイムアウトを延長
 	}
 
 	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)

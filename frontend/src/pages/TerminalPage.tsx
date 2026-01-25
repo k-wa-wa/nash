@@ -10,11 +10,17 @@ import {
 	TerminalOutput,
 	type TerminalOutputHandle,
 } from "../components/TerminalOutput";
-import { PasswordModal } from "../components/PasswordModal";
+import { AuthModal } from "../components/AuthModal";
 import { AiSummaryOverlay } from "../components/AiSummaryOverlay";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 import styles from "./TerminalPage.module.css";
+
+interface ChallengeState {
+	instruction: string;
+	questions: string[];
+	echos: boolean[];
+}
 
 export function TerminalPage() {
 	const location = useLocation();
@@ -29,7 +35,23 @@ export function TerminalPage() {
 	const [connectionParams, setConnectionParams] = useState<ConnectionParams>(
 		location.state as ConnectionParams,
 	);
-	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+	const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+	const [authModalConfig, setAuthModalConfig] = useState<{
+		title: string;
+		description: string;
+		promptLabel: string;
+		isPassword: boolean;
+		showInput?: boolean;
+	}>({
+		title: "Password Required",
+		description: "Authentication failed. Please enter password for this host.",
+		promptLabel: "Password",
+		isPassword: true,
+		showInput: true,
+	});
+	const [currentChallenge, setCurrentChallenge] = useState<ChallengeState | null>(
+		null,
+	);
 
 	// AI Summary state
 	const [aiEnabled, setAiEnabled] = useState(true); // localStorageから読み込み
@@ -51,12 +73,7 @@ export function TerminalPage() {
 	}, []);
 
 	// Helper to send messages
-	const sendMessage = (msg: {
-		type: "data" | "resize";
-		payload?: string;
-		rows?: number;
-		cols?: number;
-	}) => {
+	const sendMessage = (msg: unknown) => {
 		if (socketRef.current?.readyState === WebSocket.OPEN) {
 			socketRef.current.send(JSON.stringify(msg));
 		}
@@ -119,6 +136,7 @@ export function TerminalPage() {
 				user: connectionParams.user || "",
 				pass: connectionParams.password || "",
 				identity_file: connectionParams.identityFile || "",
+				identity_key: connectionParams.identityKey || "",
 			});
 
 			const fullUrl = `${wsUrl}/ws?${query.toString()}`;
@@ -139,8 +157,58 @@ export function TerminalPage() {
 			};
 
 			socket.onmessage = (ev) => {
+				// Try parsing JSON first for special messages
+				try {
+					const msg = JSON.parse(ev.data);
+					if (msg.type === "AUTH_CHALLENGE") {
+						// msg.payload is already the object because Go's json.RawMessage embeds it raw
+						const challenge = msg.payload as ChallengeState;
+
+						setCurrentChallenge(challenge);
+
+						// Handle case where questions is null/empty (Instruction only or no-op)
+						const hasQuestions = challenge.questions && challenge.questions.length > 0;
+
+						if (!hasQuestions) {
+							// Informational challenge (e.g. MOTD or just info before next step)
+							// User requested to suppress modal in this case.
+							if (challenge.instruction) {
+								shellRef.current?.write(`\r\n${challenge.instruction}\r\n`);
+							}
+							// Auto-respond with empty answers
+							sendMessage({
+								type: "AUTH_RESPONSE",
+								payload: { answers: [] }
+							});
+							return;
+						}
+
+						const firstQuestion = challenge.questions[0];
+
+						setAuthModalConfig({
+							title: "Authentication Required",
+							description: challenge.instruction || "Please answer the following question.",
+							promptLabel: firstQuestion,
+							isPassword: challenge.echos ? !challenge.echos[0] : true,
+							showInput: true,
+						});
+						setIsAuthModalOpen(true);
+						return;
+					}
+				} catch (e) {
+					// Not JSON, treat as standard text output
+				}
+
 				if (ev.data === "AUTH_REQUIRED") {
-					setIsPasswordModalOpen(true);
+					setAuthModalConfig({
+						title: "Password Required",
+						description: "Authentication failed. Please enter password for this host.",
+						promptLabel: "Password",
+						isPassword: true,
+						showInput: true,
+					});
+					setCurrentChallenge(null); // Clear any challenge
+					setIsAuthModalOpen(true);
 					shellRef.current?.write("\r\nPassword authentication required.\r\n");
 				} else {
 					shellRef.current?.write(ev.data);
@@ -244,9 +312,37 @@ export function TerminalPage() {
 		shellRef.current?.focus();
 	};
 
-	const handlePasswordSubmit = (password: string) => {
-		setConnectionParams((prev) => ({ ...prev, password }));
-		setIsPasswordModalOpen(false);
+	const handleAuthSubmit = (value: string) => {
+		if (currentChallenge) {
+			// Send Challenge Response
+			const payload = {
+				answers: currentChallenge.questions && currentChallenge.questions.length > 0 ? [value] : [],
+			};
+			// We need to send it back as JSON.RawMessage compatible byte array?
+			// In main.go: json.Unmarshal(res.Payload, &resPayload)
+			// msg := AuthMessage{ Type: "AUTH_RESPONSE", Payload: ... }
+			// If we send raw JSON object in Payload, Go Unmarshal might fail if it expects []byte encoded as string?
+			// Go's json.RawMessage is just []byte.
+			// If we send { type: "...", payload: { answers: [...] } } from JS,
+			// Go decodes it into AuthMessage struct where Payload is json.RawMessage.
+			// json.RawMessage stores the raw JSON string of that field.
+			// So if we send an object, Payload will be the JSON representation of that object.
+			// Then we Unmarshal that Payload into AuthResponsePayload.
+			// This works! Unlike Marshal-ing []byte which base64 encodes it.
+			// Sending objects FROM JS to Go json.RawMessage is fine.
+
+			const msg = {
+				type: "AUTH_RESPONSE",
+				payload: payload // This will be kept as raw JSON, then unmarshaled
+			};
+			sendMessage(msg);
+		} else {
+			// Fallback to password update (re-connect? No, we need to restart connection usually)
+			// But current logic for PASSWORD mode is: update params and re-run useEffect?
+			// The original logic was: setConnectionParams -> triggers useEffect -> reconnects with new pass.
+			setConnectionParams((prev) => ({ ...prev, password: value }));
+		}
+		setIsAuthModalOpen(false);
 	};
 
 	// AI Summary logic
@@ -403,9 +499,14 @@ export function TerminalPage() {
 				<ShortcutBar onKey={handleVirtualKey} />
 			</div>
 
-			<PasswordModal
-				isOpen={isPasswordModalOpen}
-				onSubmit={handlePasswordSubmit}
+			<AuthModal
+				isOpen={isAuthModalOpen}
+				title={authModalConfig.title}
+				description={authModalConfig.description}
+				promptLabel={authModalConfig.promptLabel}
+				isPassword={authModalConfig.isPassword}
+				showInput={authModalConfig.showInput}
+				onSubmit={handleAuthSubmit}
 				onCancel={() => navigate("/")}
 			/>
 		</div>

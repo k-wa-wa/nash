@@ -37,6 +37,7 @@ export function HomePage() {
 		port: string,
 		pass?: string,
 		identityFile?: string,
+		identityKey?: string,
 	) => {
 		navigate("/terminal", {
 			state: {
@@ -46,6 +47,7 @@ export function HomePage() {
 				password: pass,
 				authType: pass ? "password" : "none",
 				identityFile,
+				identityKey,
 			},
 		});
 	};
@@ -57,6 +59,7 @@ export function HomePage() {
 			host.Port || "22",
 			undefined,
 			host.IdentityFile,
+			undefined, // Saved hosts don't have raw key content stored in this way usually
 		);
 	};
 

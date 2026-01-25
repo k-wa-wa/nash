@@ -18,6 +18,10 @@
   - WebSocket (`/ws`): クライアントとの双方向通信を確立。
 - **SSH Client**:
   - `golang.org/x/crypto/ssh` を使用してリモートホストへ接続。
+  - 認証方式: 
+    - パスワード認証
+    - 公開鍵認証（ファイルパス指定 / クライアントからのアップロード）
+    - Keyboard Interactive / OTP（WebSocket経由でのトンネリング）
   - 擬似端末 (PTY) を割り当て、シェルセッションを開始。
   - 入出力（Stdin/Stdout/Stderr）をWebSocketメッセージとして中継。
 
