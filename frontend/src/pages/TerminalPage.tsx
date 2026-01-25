@@ -252,9 +252,15 @@ export function TerminalPage() {
 	// AI Summary logic
 	const summarizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const handleNewOutput = (data: string) => {
-		console.log('[AI Summary] handleNewOutput called', { aiEnabled: aiEnabledRef.current, isPendingSummary: isPendingSummaryRef.current, dataLength: data.length });
+		console.log("[AI Summary] handleNewOutput called", {
+			aiEnabled: aiEnabledRef.current,
+			isPendingSummary: isPendingSummaryRef.current,
+			dataLength: data.length,
+		});
 		if (!aiEnabledRef.current || !isPendingSummaryRef.current) {
-			console.log('[AI Summary] AI is disabled or no summary pending, skipping');
+			console.log(
+				"[AI Summary] AI is disabled or no summary pending, skipping",
+			);
 			return;
 		}
 
@@ -265,37 +271,41 @@ export function TerminalPage() {
 		}
 
 		summarizeTimerRef.current = setTimeout(() => {
-			console.log('[AI Summary] Timer triggered, checking conditions...');
+			console.log("[AI Summary] Timer triggered, checking conditions...");
 			checkAndSummarize();
 		}, 1000); // 1秒間出力が止まったら要約を検討
 	};
 
 	const checkAndSummarize = async () => {
-		console.log('[AI Summary] checkAndSummarize called', { aiEnabled: aiEnabledRef.current, isSummarizing, lastOutputLen: lastOutputRef.current.length });
+		console.log("[AI Summary] checkAndSummarize called", {
+			aiEnabled: aiEnabledRef.current,
+			isSummarizing,
+			lastOutputLen: lastOutputRef.current.length,
+		});
 		if (!aiEnabledRef.current || isSummarizing) return;
 
 		// 新たな出力がない場合はスキップ
 		if (lastOutputRef.current.length === 0) {
-			console.log('[AI Summary] No new output since last summary, skipping');
+			console.log("[AI Summary] No new output since last summary, skipping");
 			return;
 		}
 
 		// マーカーベースの出力を取得（引数なしでマーカー優先）
 		const bufferText = shellRef.current?.getBufferText() || "";
-		console.group('[AI Summary] API Request Details');
-		console.log('Buffer Text Length:', bufferText.length);
-		console.log('--- FULL BUFFER START ---');
+		console.group("[AI Summary] API Request Details");
+		console.log("Buffer Text Length:", bufferText.length);
+		console.log("--- FULL BUFFER START ---");
 		console.log(bufferText);
-		console.log('--- FULL BUFFER END ---');
+		console.log("--- FULL BUFFER END ---");
 		console.groupEnd();
 
 		if (bufferText.length < 20) {
-			console.log('[AI Summary] Text too short, skipping');
+			console.log("[AI Summary] Text too short, skipping");
 			lastOutputRef.current = "";
 			return;
 		}
 
-		console.log('[AI Summary] Calling API...');
+		console.log("[AI Summary] Calling API...");
 		setIsSummarizing(true);
 		setSummary("");
 		setIsOverlayOpen(true); // 呼び出し開始時にオーバーレイを表示
@@ -309,7 +319,7 @@ export function TerminalPage() {
 
 			if (response.ok) {
 				const data = await response.json();
-				console.log('[AI Summary] Success:', data.summary);
+				console.log("[AI Summary] Success:", data.summary);
 				setSummary(data.summary);
 				setIsOverlayOpen(true); // 要約完了時に自動で開く
 			} else {

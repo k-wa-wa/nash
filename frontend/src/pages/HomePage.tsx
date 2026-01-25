@@ -31,7 +31,13 @@ export function HomePage() {
 		return () => clearTimeout(timer);
 	}, []);
 
-	const connect = (host: string, user: string, port: string, pass?: string, identityFile?: string) => {
+	const connect = (
+		host: string,
+		user: string,
+		port: string,
+		pass?: string,
+		identityFile?: string,
+	) => {
 		navigate("/terminal", {
 			state: {
 				host,
@@ -45,7 +51,13 @@ export function HomePage() {
 	};
 
 	const handleConnectHost = (host: SSHHost) => {
-		connect(host.HostName, host.User || "root", host.Port || "22", undefined, host.IdentityFile);
+		connect(
+			host.HostName,
+			host.User || "root",
+			host.Port || "22",
+			undefined,
+			host.IdentityFile,
+		);
 	};
 
 	return (
