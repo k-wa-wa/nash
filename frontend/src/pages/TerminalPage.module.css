@@ -29,6 +29,16 @@
     gap: 8px;
 }
 
+.topLeftActions {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .aiButton {
     display: flex;
     align-items: center;
@@ -46,6 +56,7 @@
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
+    padding: 0;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
@@ -58,5 +69,38 @@
 }
 
 .aiButton:active {
+    transform: scale(0.92);
+}
+
+.disconnectButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 100, 100, 0.2);
+    border-radius: 50%;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255, 200, 200, 0.9);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    padding: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.disconnectButton:hover {
+    background: rgba(255, 100, 100, 0.4);
+    border-color: rgba(255, 150, 150, 0.6);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255, 100, 100, 0.4);
+    transform: scale(1.08);
+}
+
+.disconnectButton:active {
     transform: scale(0.92);
 }

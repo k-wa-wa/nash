@@ -9,10 +9,26 @@ import styles from "./HomePage.module.css";
 
 export function HomePage() {
 	const [hosts, setHosts] = useState<SSHHost[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [showSkeleton, setShowSkeleton] = useState(false);
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		fetchHosts().then(setHosts);
+		setIsLoading(true);
+		setShowSkeleton(false);
+
+		// 200ms以上かかった場合のみスケルトンを表示
+		const timer = setTimeout(() => {
+			setShowSkeleton(true);
+		}, 200);
+
+		fetchHosts().then((data) => {
+			setHosts(data);
+			setIsLoading(false);
+			clearTimeout(timer);
+		});
+
+		return () => clearTimeout(timer);
 	}, []);
 
 	const connect = (host: string, user: string, port: string, pass?: string, identityFile?: string) => {
@@ -51,7 +67,17 @@ export function HomePage() {
 
 			<section className={styles.section}>
 				<h2>Available Hosts</h2>
-				<HostList hosts={hosts} onConnect={handleConnectHost} />
+				{isLoading && showSkeleton ? (
+					<div className={styles.skeletonList}>
+						<div className={styles.skeletonItem} />
+						<div className={styles.skeletonItem} />
+						<div className={styles.skeletonItem} />
+					</div>
+				) : !isLoading ? (
+					<div className={styles.loadedContent}>
+						<HostList hosts={hosts} onConnect={handleConnectHost} />
+					</div>
+				) : null}
 			</section>
 
 			<section>

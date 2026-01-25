@@ -42,7 +42,7 @@ export const CommandInput = forwardRef<CommandInputHandle, Props>(
 		return (
 			<div
 				style={{
-					padding: "10px",
+					padding: "4px 10px",
 					background: "rgba(20, 20, 20, 0.95)",
 					backdropFilter: "blur(10px)",
 					borderTop: "1px solid rgba(255, 255, 255, 0.1)",
@@ -52,6 +52,7 @@ export const CommandInput = forwardRef<CommandInputHandle, Props>(
 					gap: "10px",
 					zIndex: 10,
 					flexShrink: 0,
+					minHeight: "44px",
 				}}
 			>
 				<span style={{ color: "#0f0", fontWeight: "bold", userSelect: "none" }}>
@@ -77,6 +78,7 @@ export const CommandInput = forwardRef<CommandInputHandle, Props>(
 						margin: 0,
 					}}
 					placeholder="Type command..."
+					inputMode="url"
 					autoComplete="off"
 					autoCapitalize="none"
 					autoCorrect="off"
@@ -92,7 +94,7 @@ export const CommandInput = forwardRef<CommandInputHandle, Props>(
 						border: "none",
 						borderRadius: "6px", // Rounded corners
 						color: "white", // White icon
-						padding: "8px 12px", // Good touch target but not too tall
+						padding: "6px 10px", // Good touch target but not too tall
 						cursor: "pointer",
 						display: "flex",
 						alignItems: "center",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Power, Sparkles } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
 	CommandInput,
@@ -37,6 +38,7 @@ export function TerminalPage() {
 	const [summary, setSummary] = useState("");
 	const [isSummarizing, setIsSummarizing] = useState(false);
 	const lastOutputRef = useRef("");
+	const isPendingSummaryRef = useRef(false);
 
 	// Load AI setting from localStorage
 	useEffect(() => {
@@ -202,8 +204,18 @@ export function TerminalPage() {
 	const executeCommand = () => {
 		// コマンド実行の開始地点にマーカーを設置
 		shellRef.current?.registerCommandMarker();
+		if (inputCmd.trim().length > 0) {
+			isPendingSummaryRef.current = true;
+		}
 		handleData(`${inputCmd}\r`);
 		setInputCmd("");
+	};
+
+	const disconnect = () => {
+		if (socketRef.current) {
+			socketRef.current.close();
+		}
+		navigate("/");
 	};
 
 	const handleInputChange = (val: string) => {
@@ -240,9 +252,9 @@ export function TerminalPage() {
 	// AI Summary logic
 	const summarizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const handleNewOutput = (data: string) => {
-		console.log('[AI Summary] handleNewOutput called', { aiEnabled: aiEnabledRef.current, dataLength: data.length });
-		if (!aiEnabledRef.current) {
-			console.log('[AI Summary] AI is disabled, skipping');
+		console.log('[AI Summary] handleNewOutput called', { aiEnabled: aiEnabledRef.current, isPendingSummary: isPendingSummaryRef.current, dataLength: data.length });
+		if (!aiEnabledRef.current || !isPendingSummaryRef.current) {
+			console.log('[AI Summary] AI is disabled or no summary pending, skipping');
 			return;
 		}
 
@@ -259,8 +271,14 @@ export function TerminalPage() {
 	};
 
 	const checkAndSummarize = async () => {
-		console.log('[AI Summary] checkAndSummarize called', { aiEnabled: aiEnabledRef.current, isSummarizing });
+		console.log('[AI Summary] checkAndSummarize called', { aiEnabled: aiEnabledRef.current, isSummarizing, lastOutputLen: lastOutputRef.current.length });
 		if (!aiEnabledRef.current || isSummarizing) return;
+
+		// 新たな出力がない場合はスキップ
+		if (lastOutputRef.current.length === 0) {
+			console.log('[AI Summary] No new output since last summary, skipping');
+			return;
+		}
 
 		// マーカーベースの出力を取得（引数なしでマーカー優先）
 		const bufferText = shellRef.current?.getBufferText() || "";
@@ -302,6 +320,7 @@ export function TerminalPage() {
 		} finally {
 			setIsSummarizing(false);
 			lastOutputRef.current = "";
+			isPendingSummaryRef.current = false;
 		}
 	};
 
@@ -317,16 +336,28 @@ export function TerminalPage() {
 		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
 			{/* Top Actions */}
 			{!isAlternateBuffer && (
-				<div className={styles.topRightActions}>
-					<button
-						type="button"
-						className={styles.aiButton}
-						onClick={() => setIsOverlayOpen(!isOverlayOpen)}
-						aria-label="AI Summary"
-					>
-						AI
-					</button>
-				</div>
+				<>
+					<div className={styles.topLeftActions}>
+						<button
+							type="button"
+							className={styles.disconnectButton}
+							onClick={disconnect}
+							aria-label="Disconnect"
+						>
+							<Power size={20} />
+						</button>
+					</div>
+					<div className={styles.topRightActions}>
+						<button
+							type="button"
+							className={styles.aiButton}
+							onClick={() => setIsOverlayOpen(!isOverlayOpen)}
+							aria-label="AI Summary"
+						>
+							<Sparkles size={20} />
+						</button>
+					</div>
+				</>
 			)}
 
 			{/* Terminal Area (Flex Grow) */}

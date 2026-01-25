@@ -12,13 +12,13 @@ export function ShortcutBar({ onKey }: Props) {
 		borderRadius: "8px",
 		border: "1px solid rgba(255, 255, 255, 0.1)",
 		color: "#fff",
-		minWidth: "42px",
-		height: "42px",
+		minWidth: "36px",
+		height: "36px",
 		display: "flex",
 		justifyContent: "center",
 		alignItems: "center",
 		touchAction: "manipulation",
-		fontSize: "0.8rem",
+		fontSize: "0.75rem",
 		fontWeight: 600,
 		cursor: "pointer",
 		transition: "all 0.2s ease",
@@ -42,9 +42,9 @@ export function ShortcutBar({ onKey }: Props) {
 				className="scroll-area"
 				style={{
 					display: "flex",
-					gap: "8px",
+					gap: "4px",
 					overflowX: "auto",
-					padding: "10px",
+					padding: "4px 8px",
 					flexGrow: 1,
 					scrollbarWidth: "none",
 					msOverflowStyle: "none",
@@ -52,6 +52,7 @@ export function ShortcutBar({ onKey }: Props) {
 					WebkitMaskImage:
 						"linear-gradient(to right, black 85%, transparent 100%)",
 					alignItems: "center",
+					minHeight: "44px",
 				}}
 			>
 				<style>{`
@@ -69,22 +70,22 @@ export function ShortcutBar({ onKey }: Props) {
 				<div
 					style={{
 						width: "1px",
-						height: "24px",
+						height: "18px",
 						background: "rgba(255,255,255,0.2)",
-						margin: "0 4px",
+						margin: "0 2px",
 					}}
 				/>
 				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[A")}>
-					<ArrowUp size={18} />
+					<ArrowUp size={16} />
 				</button>
 				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[B")}>
-					<ArrowDown size={18} />
+					<ArrowDown size={16} />
 				</button>
 				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[D")}>
-					<ArrowLeft size={18} />
+					<ArrowLeft size={16} />
 				</button>
 				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[C")}>
-					<ArrowRight size={18} />
+					<ArrowRight size={16} />
 				</button>
 				{/* Spacer to ensure last item is reachable despite mask */}
 				<div style={{ minWidth: "20px" }} />
