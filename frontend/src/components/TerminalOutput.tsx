@@ -155,8 +155,9 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
                         // マーカーがある場合は、その行から開始
                         startLine = lastMarkerRef.current.line;
                     } else {
-                        // マーカーがない場合は、指定された行数分遡る
-                        startLine = Math.max(0, endLine - lines);
+                        // マーカーがない場合は、初回接続時などコマンド未実行の状態とみなし、要約対象としない
+                        console.log('[TerminalOutput] getBufferText: skip (no marker set)');
+                        return "";
                     }
 
                     for (let i = startLine; i <= endLine; i++) {
