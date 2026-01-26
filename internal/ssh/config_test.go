@@ -105,6 +105,36 @@ func TestParseConfig_NoFile(t *testing.T) {
 	if len(hosts) != 0 {
 		t.Errorf("Expected 0 hosts, got %d", len(hosts))
 	}
+	if hosts == nil {
+		t.Error("Expected empty slice, got nil")
+	}
+}
+
+func TestParseConfig_EmptyContent(t *testing.T) {
+	// Create a temporary directory for the test config
+	tmpDir, err := os.MkdirTemp("", "nash_ssh_test_empty")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	configPath := filepath.Join(tmpDir, "config")
+	// Write empty content (or just comments)
+	if err := os.WriteFile(configPath, []byte("# Just a comment"), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	hosts, err := ParseConfig(configPath)
+	if err != nil {
+		t.Fatalf("ParseConfig failed: %v", err)
+	}
+
+	if len(hosts) != 0 {
+		t.Errorf("Expected 0 hosts, got %d", len(hosts))
+	}
+	if hosts == nil {
+		t.Error("Expected empty slice, got nil")
+	}
 }
 
 func TestHostEntry_JSON(t *testing.T) {
