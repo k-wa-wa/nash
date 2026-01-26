@@ -3,7 +3,7 @@ services:
   sshd:
     build: 
       context: .
-      dockerfile: ssh_server/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "2222:22"
     environment:

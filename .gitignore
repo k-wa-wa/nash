@@ -9,6 +9,9 @@ frontend/dist
 frontend/node_modules
 frontend/coverage
 frontend/.storybook-static
+e2e/node_modules
+e2e/test-results
+e2e/playwright-report
 
 # IDEs
 .idea

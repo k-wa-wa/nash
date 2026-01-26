@@ -10,6 +10,7 @@ storybook:
 build-storybook:
 	cd frontend && npm run build-storybook
 
+test-all: export CI=true
 test-all: format lint test build-storybook test-e2e
 
 lint:
@@ -22,22 +23,22 @@ format:
 	go fmt ./...
 
 test-e2e:
-	cd e2e && go test -v .
+	cd e2e && npm test
 
 mock-up:
-	@if [ ! -f e2e/keys/id_rsa ]; then \
+	@if [ ! -f e2e/ssh_server/keys/id_rsa ]; then \
 		echo "Generating SSH keys..."; \
-		mkdir -p e2e/keys; \
-		ssh-keygen -t rsa -b 4096 -f e2e/keys/id_rsa -N "" -C "test@example.com"; \
+		mkdir -p e2e/ssh_server/keys; \
+		ssh-keygen -t rsa -b 4096 -f e2e/ssh_server/keys/id_rsa -N "" -C "test@example.com"; \
 	fi
-	cd e2e && docker compose up -d --build
+	cd e2e/ssh_server && docker compose up -d --build
 	@echo "SSH Server started on localhost:2222"
 	@echo "  User: testuser, Pass: password"
-	@echo "  User: keyuser, Key: e2e/keys/id_rsa"
-	@echo "Mock config created at e2e/ssh_config"
+	@echo "  User: keyuser, Key: e2e/ssh_server/keys/id_rsa"
+	@echo "Mock config created at e2e/ssh_server/ssh_config"
 
 mock-down:
-	cd e2e && docker compose down
+	cd e2e/ssh_server && docker compose down
 
 test: unit-test-frontend unit-test-backend
 
@@ -45,7 +46,7 @@ unit-test-frontend:
 	cd frontend && npm run test:unit
 
 unit-test-backend:
-	go list ./... | grep -v /e2e | xargs go test -v
+	go list ./... | xargs go test -v
 
 build-frontend:
 	cd frontend && npm run build
@@ -57,7 +58,7 @@ run: mock-up
 	@echo "Starting dev environment (Frontend on :5173, Backend on :8080)..."
 	@trap 'kill 0' EXIT; \
 	(cd frontend && npm run dev -- --host) & \
-	DEV_MODE=true air -- -config e2e/ssh_config
+	DEV_MODE=true air -- -config e2e/ssh_server/ssh_config
 
 clean:
 	rm -rf cmd/server/dist
