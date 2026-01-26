@@ -49,9 +49,8 @@ export function TerminalPage() {
 		isPassword: true,
 		showInput: true,
 	});
-	const [currentChallenge, setCurrentChallenge] = useState<ChallengeState | null>(
-		null,
-	);
+	const [currentChallenge, setCurrentChallenge] =
+		useState<ChallengeState | null>(null);
 
 	// AI Summary state
 	const [aiEnabled, setAiEnabled] = useState(true); // localStorageから読み込み
@@ -167,7 +166,8 @@ export function TerminalPage() {
 						setCurrentChallenge(challenge);
 
 						// Handle case where questions is null/empty (Instruction only or no-op)
-						const hasQuestions = challenge.questions && challenge.questions.length > 0;
+						const hasQuestions =
+							challenge.questions && challenge.questions.length > 0;
 
 						if (!hasQuestions) {
 							// Informational challenge (e.g. MOTD or just info before next step)
@@ -178,7 +178,7 @@ export function TerminalPage() {
 							// Auto-respond with empty answers
 							sendMessage({
 								type: "AUTH_RESPONSE",
-								payload: { answers: [] }
+								payload: { answers: [] },
 							});
 							return;
 						}
@@ -187,7 +187,9 @@ export function TerminalPage() {
 
 						setAuthModalConfig({
 							title: "Authentication Required",
-							description: challenge.instruction || "Please answer the following question.",
+							description:
+								challenge.instruction ||
+								"Please answer the following question.",
 							promptLabel: firstQuestion,
 							isPassword: challenge.echos ? !challenge.echos[0] : true,
 							showInput: true,
@@ -202,7 +204,8 @@ export function TerminalPage() {
 				if (ev.data === "AUTH_REQUIRED") {
 					setAuthModalConfig({
 						title: "Password Required",
-						description: "Authentication failed. Please enter password for this host.",
+						description:
+							"Authentication failed. Please enter password for this host.",
 						promptLabel: "Password",
 						isPassword: true,
 						showInput: true,
@@ -316,7 +319,10 @@ export function TerminalPage() {
 		if (currentChallenge) {
 			// Send Challenge Response
 			const payload = {
-				answers: currentChallenge.questions && currentChallenge.questions.length > 0 ? [value] : [],
+				answers:
+					currentChallenge.questions && currentChallenge.questions.length > 0
+						? [value]
+						: [],
 			};
 			// We need to send it back as JSON.RawMessage compatible byte array?
 			// In main.go: json.Unmarshal(res.Payload, &resPayload)
@@ -333,7 +339,7 @@ export function TerminalPage() {
 
 			const msg = {
 				type: "AUTH_RESPONSE",
-				payload: payload // This will be kept as raw JSON, then unmarshaled
+				payload: payload, // This will be kept as raw JSON, then unmarshaled
 			};
 			sendMessage(msg);
 		} else {

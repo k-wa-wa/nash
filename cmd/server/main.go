@@ -178,7 +178,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	sshClient := ssh.NewClient(host, port, user, pass, identityFile, identityKey, challengeHandler)
 	if err := sshClient.Connect(); err != nil {
 		log.Printf("Failed to connect to SSH: %v", err)
-		if strings.Contains(err.Error(), "unable to authenticate") {
+		if strings.Contains(err.Error(), "unable to authenticate") ||
+			strings.Contains(err.Error(), "handshake failed") ||
+			strings.Contains(err.Error(), "unexpected message type 51") {
 			conn.WriteMessage(websocket.TextMessage, []byte("AUTH_REQUIRED"))
 		} else {
 			conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))

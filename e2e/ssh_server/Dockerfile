@@ -29,6 +29,7 @@ RUN chown -R keyuser:keyuser /home/keyuser/.ssh
 RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
 RUN echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+RUN echo "ChallengeResponseAuthentication yes" >> /etc/ssh/sshd_config
 
 EXPOSE 22
 

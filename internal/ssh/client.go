@@ -43,6 +43,10 @@ func NewClient(host string, port int, user, pass, identityFile, identityKey stri
 func (c *Client) Connect() error {
 	var authMethods []ssh.AuthMethod
 
+	if c.Pass != "" {
+		authMethods = append(authMethods, ssh.Password(c.Pass))
+	}
+
 	if c.IdentityKey != "" {
 		signer, err := ssh.ParsePrivateKey([]byte(c.IdentityKey))
 		if err == nil {
@@ -62,10 +66,6 @@ func (c *Client) Connect() error {
 		} else {
 			log.Printf("Failed to read identity file %s: %v", c.IdentityFile, err)
 		}
-	}
-
-	if c.Pass != "" {
-		authMethods = append(authMethods, ssh.Password(c.Pass))
 	}
 
 	if c.ChallengeHandler != nil {

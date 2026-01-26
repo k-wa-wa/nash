@@ -25,6 +25,11 @@ test-e2e:
 	cd e2e && go test -v .
 
 mock-up:
+	@if [ ! -f e2e/keys/id_rsa ]; then \
+		echo "Generating SSH keys..."; \
+		mkdir -p e2e/keys; \
+		ssh-keygen -t rsa -b 4096 -f e2e/keys/id_rsa -N "" -C "test@example.com"; \
+	fi
 	cd e2e && docker compose up -d --build
 	@echo "SSH Server started on localhost:2222"
 	@echo "  User: testuser, Pass: password"
@@ -48,7 +53,7 @@ build-frontend:
 build-backend:
 	go build -o $(BINARY_NAME) ./cmd/server
 
-run:
+run: mock-up
 	@echo "Starting dev environment (Frontend on :5173, Backend on :8080)..."
 	@trap 'kill 0' EXIT; \
 	(cd frontend && npm run dev -- --host) & \
