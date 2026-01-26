@@ -36,7 +36,7 @@ func ParseConfig(customPath string) ([]HostEntry, error) {
 	}
 	defer f.Close()
 
-	var hosts []HostEntry
+	hosts := []HostEntry{}
 	var current *HostEntry
 
 	scanner := bufio.NewScanner(f)

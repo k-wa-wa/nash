@@ -14,14 +14,26 @@ interface ConnectFormProps {
 }
 
 export function ConnectForm({ onConnect }: ConnectFormProps) {
-	const [host, setHost] = useState(import.meta.env.VITE_SSH_HOST || "");
-	const [user, setUser] = useState(import.meta.env.VITE_SSH_USER || "");
-	const [port, setPort] = useState(import.meta.env.VITE_SSH_PORT || "22");
+	const [host, setHost] = useState(
+		localStorage.getItem("ssh_host") || import.meta.env.VITE_SSH_HOST || "",
+	);
+	const [user, setUser] = useState(
+		localStorage.getItem("ssh_user") || import.meta.env.VITE_SSH_USER || "",
+	);
+	const [port, setPort] = useState(
+		localStorage.getItem("ssh_port") || import.meta.env.VITE_SSH_PORT || "22",
+	);
 	const [pass, setPass] = useState(import.meta.env.VITE_SSH_PASS || "");
 	const [identityKey, setIdentityKey] = useState("");
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+
+		// Save connection details to localStorage
+		localStorage.setItem("ssh_host", host);
+		localStorage.setItem("ssh_user", user);
+		localStorage.setItem("ssh_port", port);
+
 		// identityFile is undefined when using manual form, identityKey is passed if file selected
 		onConnect(host, user, port, pass, undefined, identityKey);
 	};
