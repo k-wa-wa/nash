@@ -115,8 +115,21 @@ jobs:
           ../../nash -config ssh_server/ssh_config &
           PID=$!
           
-          # Wait for app to be ready (simple sleep or curl loop)
-          sleep 5
+          # Wait for app to be ready
+          echo "Waiting for backend to be ready..."
+          timeout=30
+          counter=0
+          until curl -s http://localhost:8080 > /dev/null; do
+            if [ $counter -ge $timeout ]; then
+              echo "Timeout waiting for backend"
+              kill $PID
+              exit 1
+            fi
+            printf '.'
+            sleep 1
+            counter=$((counter+1))
+          done
+          echo "Backend is ready!"
           
           # Run tests
           npm test
