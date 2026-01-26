@@ -7,7 +7,8 @@
 	background-color: rgba(0, 0, 0, 0.7);
 	backdrop-filter: blur(5px);
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
+	padding-top: 120px;
 	justify-content: center;
 	z-index: 1000;
 }
