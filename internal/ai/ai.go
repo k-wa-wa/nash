@@ -2,7 +2,9 @@ package ai
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,7 +56,7 @@ type OpenAIResponse struct {
 }
 
 // Summarize sends terminal output to AI and returns a summary
-func Summarize(text string) (string, error) {
+func Summarize(ctx context.Context, text string) (string, error) {
 	config := GetConfig()
 
 	reqBody := OpenAIRequest{
@@ -76,15 +78,15 @@ func Summarize(text string) (string, error) {
 		return "", err
 	}
 
-	url := fmt.Sprintf("%s/chat/completions", config.Endpoint)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	url := config.Endpoint + "/chat/completions"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	if config.APIKey != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.APIKey))
+		req.Header.Set("Authorization", "Bearer "+config.APIKey)
 	}
 
 	client := &http.Client{}
@@ -112,5 +114,5 @@ func Summarize(text string) (string, error) {
 		return openAIResp.Choices[0].Message.Content, nil
 	}
 
-	return "", fmt.Errorf("no response from AI")
+	return "", errors.New("no response from AI")
 }

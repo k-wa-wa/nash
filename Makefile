@@ -16,11 +16,11 @@ test-all: format lint test build-storybook test-e2e
 lint:
 	cd frontend && npm run lint
 	cd frontend && npm run typecheck
-	go vet ./...
+	golangci-lint run ./...
 
 format:
 	cd frontend && npm run format
-	go fmt ./...
+	golangci-lint run --fix ./...
 
 test-e2e:
 	cd e2e && npm test

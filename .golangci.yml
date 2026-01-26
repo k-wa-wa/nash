@@ -1,0 +1,58 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable-all: true
+  disable:
+    # Deprecated linters
+    - tenv # superseded by usetesting
+
+    # Replaced/Conflicting
+    - depguard
+    - exhaustruct
+    - varnamelen
+    - wsl
+    - lll
+    - godox
+    - funlen
+    - gocognit
+    - gocyclo
+    - cyclop
+    - nestif
+    - nlreturn
+    - gomoddirectives
+    - mnd
+    - testpackage
+    - paralleltest
+    - tparallel
+    - wrapcheck
+    - forcetypeassert
+    - ireturn
+    - nonamedreturns
+    - gochecknoglobals
+    - gochecknoinits
+    - tagliatelle
+    - promlinter
+    - intrange
+
+    # Project Specific Exclusions
+    - gosmopolitan # We use Japanese
+    - forbidigo # We use fmt.Printf for CLI output
+    - godot # Comment periods are annoyingly strict
+    - err113 # Dynamic errors are fine for this scale
+    - gci # Conflicts with standard goimports sometimes, but let's see if fix handles it. Disabling to be safe or keep enabled? Let's KEEP enabled but if it fights, we disable. Actually, standard `go fmt` is enough usually, but let's try to keep it.
+    # Disabling gci because it often conflicts or reorders imports aggressively.
+    # - gci 
+
+linters-settings:
+  gosec:
+    excludes:
+      - G104 # weak random number generator
+      - G404 # weak random number generator
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+      - name: package-comments
+        disabled: true

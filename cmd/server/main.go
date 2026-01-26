@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"nash/internal/ai"
+	"nash/internal/ssh"
+	"nash/internal/ws"
 	"net"
 	"net/http"
 	"os"
@@ -15,10 +18,6 @@ import (
 	"time"
 
 	"github.com/skip2/go-qrcode"
-
-	"nash/internal/ai"
-	"nash/internal/ssh"
-	"nash/internal/ws"
 
 	"github.com/gorilla/websocket"
 )
@@ -42,7 +41,7 @@ func handleHosts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method == "OPTIONS" {
+	if r.Method == http.MethodOptions {
 		return
 	}
 
@@ -55,7 +54,9 @@ func handleHosts(w http.ResponseWriter, r *http.Request) {
 	for _, h := range hosts {
 		log.Printf("DEBUG: Host: %+v", h)
 	}
-	json.NewEncoder(w).Encode(hosts)
+	// simple echo
+	//nolint:errchkjson // simple echo
+	_ = json.NewEncoder(w).Encode(hosts)
 }
 
 func handleSummarize(w http.ResponseWriter, r *http.Request) {
@@ -63,11 +64,11 @@ func handleSummarize(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	if r.Method == "OPTIONS" {
+	if r.Method == http.MethodOptions {
 		return
 	}
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -83,7 +84,7 @@ func handleSummarize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := ai.Summarize(req.Text)
+	summary, err := ai.Summarize(r.Context(), req.Text)
 	if err != nil {
 		log.Printf("AI Summary Error: %v", err)
 		http.Error(w, fmt.Sprintf("AI Summary Error: %v", err), http.StatusInternalServerError)
@@ -91,7 +92,9 @@ func handleSummarize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+	// simple response
+	//nolint:errchkjson // simple response
+	_ = json.NewEncoder(w).Encode(map[string]string{"summary": summary})
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +117,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Printf("DEBUG: WS Query params - host: '%s', port: '%s', user: '%s', identity_file: '%s'", host, portStr, user, identityFile)
 
 	if host == "" || user == "" {
-		conn.WriteMessage(websocket.TextMessage, []byte("Error: Missing host or user parameters"))
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("Error: Missing host or user parameters"))
 		return
 	}
 
@@ -143,7 +146,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			Questions:   questions,
 			Echos:       echos,
 		}
-		payloadBytes, _ := json.Marshal(payload)
+		payloadBytes, _ := json.Marshal(payload) //nolint:errchkjson // struct is safe
 		msg := AuthMessage{
 			Type:    "AUTH_CHALLENGE",
 			Payload: payloadBytes,
@@ -181,9 +184,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(err.Error(), "unable to authenticate") ||
 			strings.Contains(err.Error(), "handshake failed") ||
 			strings.Contains(err.Error(), "unexpected message type 51") {
-			conn.WriteMessage(websocket.TextMessage, []byte("AUTH_REQUIRED"))
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("AUTH_REQUIRED"))
 		} else {
-			conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))
+			_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))
 		}
 		return
 	}
@@ -209,14 +212,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	case err := <-errChan:
 		if err != nil {
 			log.Printf("SSH session ended with error: %v", err)
-			conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("\r\nSSH session ended with error: %v", err)))
+			_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("\r\nSSH session ended with error: %v", err)))
 		} else {
 			log.Println("SSH session ended normally")
-			conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session ended normally\r\n"))
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session ended normally\r\n"))
 		}
 	case <-time.After(60 * time.Minute): // Timeout 1 hour
 		log.Println("SSH session timed out.")
-		conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session timed out."))
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session timed out."))
 	}
 }
 
@@ -248,7 +251,7 @@ func main() {
 		if os.Getenv("DEV_MODE") == "true" {
 			targetPort = 5173
 		}
-		url := fmt.Sprintf("http://%s:%d", localIP, targetPort)
+		url := "http://" + net.JoinHostPort(localIP, strconv.Itoa(targetPort))
 		fmt.Printf("\nTarget URL: %s\n", url)
 
 		// Generate QR code
@@ -261,7 +264,11 @@ func main() {
 		fmt.Printf("Server starting on http://localhost:%d\n", port)
 	}
 
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	server := &http.Server{
+		Addr:              addr,
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
