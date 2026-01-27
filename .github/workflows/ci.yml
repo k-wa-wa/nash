@@ -120,7 +120,7 @@ jobs:
           CI: true
         run: |
           # Start the app in the background
-          ../../nash -config ssh_server/ssh_config &
+          ../nash -config ssh_server/ssh_config &
           PID=$!
           
           # Wait for app to be ready
