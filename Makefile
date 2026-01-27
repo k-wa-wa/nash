@@ -73,7 +73,7 @@ build-frontend:
 	cd frontend && npm run build
 
 build-backend:
-	go build -o $(BINARY_NAME) ./cmd/server
+	CGO_ENABLED=0 go build -ldflags "-X main.BuildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) -X main.CommitHash=$(shell git rev-parse --short HEAD)" -o $(BINARY_NAME) ./cmd/server
 
 run: mock-up
 	@echo "Starting dev environment (Frontend on :5173, Backend on :8080)..."

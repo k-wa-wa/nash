@@ -25,6 +25,11 @@ import (
 //go:embed all:dist
 var assets embed.FS
 
+var (
+	BuildTime  = "unknown"
+	CommitHash = "unknown"
+)
+
 var configPath string
 
 var upgrader = websocket.Upgrader{
@@ -95,6 +100,17 @@ func handleSummarize(w http.ResponseWriter, r *http.Request) {
 	// simple response
 	//nolint:errchkjson // simple response
 	_ = json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+}
+
+func handleInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	info := map[string]string{
+		"buildTime":  BuildTime,
+		"commitHash": CommitHash,
+	}
+	_ = json.NewEncoder(w).Encode(info)
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +270,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.FS(fsys)))
 	http.HandleFunc("/api/hosts", handleHosts)
 	http.HandleFunc("/api/summarize", handleSummarize)
+	http.HandleFunc("/api/info", handleInfo)
 	http.HandleFunc("/ws", handleWebSocket)
 
 	port := 8080

@@ -2,17 +2,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import styles from "./SettingsPage.module.css";
+import { fetchBuildInfo, type BuildInfo } from "../services/api";
 
 export function SettingsPage() {
 	const navigate = useNavigate();
 	const [aiSummaryEnabled, setAiSummaryEnabled] = useState(true);
+	const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(null);
 
-	// Load settings from localStorage on mount
+	// Load settings and fetch build info on mount
 	useEffect(() => {
 		const saved = localStorage.getItem("aiSummaryEnabled");
 		if (saved !== null) {
 			setAiSummaryEnabled(saved === "true");
 		}
+
+		fetchBuildInfo().then(setBuildInfo);
 	}, []);
 
 	// Save to localStorage when changed
@@ -58,6 +62,23 @@ export function SettingsPage() {
 							<span className={styles.slider} />
 						</label>
 					</div>
+				</div>
+			</div>
+
+			<div className={styles.footer}>
+				<div className={styles.versionInfo}>
+					{buildInfo ? (
+						<>
+							<div className={styles.versionValue}>
+								Commit: <span>{buildInfo.commitHash}</span>
+							</div>
+							<div className={styles.versionValue}>
+								Build: <span>{new Date(buildInfo.buildTime).toLocaleString()}</span>
+							</div>
+						</>
+					) : (
+						<div className={styles.versionValue}>Loading build info...</div>
+					)}
 				</div>
 			</div>
 		</div>
