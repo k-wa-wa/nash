@@ -38,11 +38,11 @@ test-all:
 lint:
 	cd frontend && npm run lint
 	cd frontend && npm run typecheck
-	golangci-lint run ./...
+	CGO_ENABLED=0 golangci-lint run ./...
 
 format:
 	cd frontend && npm run format
-	golangci-lint run --fix ./...
+	CGO_ENABLED=0 golangci-lint run --fix ./...
 
 test-e2e:
 	cd e2e && npm test
@@ -68,7 +68,7 @@ unit-test-frontend:
 	cd frontend && npm run test:unit
 
 unit-test-backend:
-	go list ./... | xargs go test -v
+	CGO_ENABLED=0 go test -v ./...
 
 build-frontend:
 	cd frontend && npm run build

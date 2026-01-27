@@ -110,6 +110,7 @@ func handleInfo(w http.ResponseWriter, r *http.Request) {
 		"buildTime":  BuildTime,
 		"commitHash": CommitHash,
 	}
+	//nolint:errchkjson // simple response
 	_ = json.NewEncoder(w).Encode(info)
 }
 
