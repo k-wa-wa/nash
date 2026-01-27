@@ -1,18 +1,25 @@
 import type React from "react";
+import type { Suggestion } from "../utils/SuggestionEngine";
 
 interface Props {
-    commands: string[];
-    onSelect: (cmd: string) => void;
+    suggestions: Suggestion[];
+    onSelect: (suggestion: Suggestion) => void;
 }
 
-export function CommandCompletionBar({ commands, onSelect }: Props) {
-    if (commands.length === 0) return null;
+export function CommandCompletionBar({ suggestions, onSelect }: Props) {
+    if (suggestions.length === 0) return null;
 
-    const btnStyle = {
+    const getStyle = (type: "history" | "static"): React.CSSProperties => ({
         padding: "4px 8px",
-        background: "rgba(0, 122, 255, 0.2)", // Different color from ShortcutBar (bluish)
+        background:
+            type === "history"
+                ? "rgba(0, 122, 255, 0.2)"
+                : "rgba(52, 199, 89, 0.2)", // Blue for history, Green for static
         borderRadius: "6px",
-        border: "1px solid rgba(0, 122, 255, 0.3)",
+        border:
+            type === "history"
+                ? "1px solid rgba(0, 122, 255, 0.3)"
+                : "1px solid rgba(52, 199, 89, 0.3)",
         color: "#fff",
         minWidth: "auto",
         height: "32px",
@@ -27,7 +34,7 @@ export function CommandCompletionBar({ commands, onSelect }: Props) {
         backdropFilter: "blur(5px)",
         flexShrink: 0,
         whiteSpace: "nowrap",
-    } as React.CSSProperties;
+    });
 
     return (
         <div
@@ -40,7 +47,6 @@ export function CommandCompletionBar({ commands, onSelect }: Props) {
                 boxSizing: "border-box",
             }}
         >
-            {/* Scrollable Area */}
             <div
                 className="scroll-area"
                 style={{
@@ -61,17 +67,16 @@ export function CommandCompletionBar({ commands, onSelect }: Props) {
                 <style>{`
                     .scroll-area::-webkit-scrollbar { display: none; }
                 `}</style>
-                {commands.map((cmd) => (
+                {suggestions.map((s) => (
                     <button
-                        key={cmd}
+                        key={`${s.type}-${s.text}`}
                         type="button"
-                        style={btnStyle}
-                        onClick={() => onSelect(cmd)}
+                        style={getStyle(s.type)}
+                        onClick={() => onSelect(s)}
                     >
-                        {cmd}
+                        {s.text}
                     </button>
                 ))}
-                {/* Spacer */}
                 <div style={{ minWidth: "20px" }} />
             </div>
         </div>

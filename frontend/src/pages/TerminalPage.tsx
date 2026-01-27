@@ -13,7 +13,11 @@ import {
 import { AuthModal } from "../components/AuthModal";
 import { AiSummaryOverlay } from "../components/AiSummaryOverlay";
 import { CommandCompletionBar } from "../components/CommandCompletionBar";
-import { parseHistoryCommands } from "../utils/historyParser";
+import {
+	getSuggestions,
+	parseHistoryCommands,
+	type Suggestion,
+} from "../utils/SuggestionEngine";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 import styles from "./TerminalPage.module.css";
@@ -34,6 +38,9 @@ export function TerminalPage() {
 	const [isAlternateBuffer, setIsAlternateBuffer] = useState(false);
 	const [inputCmd, setInputCmd] = useState("");
 	const [historyCommands, setHistoryCommands] = useState<string[]>([]);
+
+	// Derived state for suggestions
+	const suggestions = getSuggestions(inputCmd, historyCommands);
 
 	const [connectionParams, setConnectionParams] = useState<ConnectionParams>(
 		location.state as ConnectionParams,
@@ -158,12 +165,11 @@ export function TerminalPage() {
 				}, 100);
 			};
 
-
 			socket.onmessage = (ev) => {
+				// Try parsing JSON first for special messages
 				try {
 					const msg = JSON.parse(ev.data);
 					if (msg.type === "AUTH_CHALLENGE") {
-						// ... existing auth challenge logic ...
 						// msg.payload is already the object because Go's json.RawMessage embeds it raw
 						const challenge = msg.payload as ChallengeState;
 
@@ -454,8 +460,18 @@ export function TerminalPage() {
 		}
 	};
 
-	const handleHistorySelect = (cmd: string) => {
-		setInputCmd(cmd + " "); // Add space for convenience
+	const handleSuggestionSelect = (suggestion: Suggestion) => {
+		if (suggestion.type === "history") {
+			// History selection replaces current input (usually a full command)
+			setInputCmd(suggestion.text + " ");
+		} else {
+			// Static suggestion appends to current input
+			// If input ends with space, append directly. Else append space then text?
+			// "git" + "status" -> "git status"
+			// "git " + "status" -> "git status"
+			const trimmed = inputCmd.trimEnd();
+			setInputCmd(`${trimmed} ${suggestion.text} `);
+		}
 		commandInputRef.current?.focus();
 	};
 
@@ -515,12 +531,12 @@ export function TerminalPage() {
 				onEnter={executeCommand}
 			/>
 
-			{/* Command Completion Bar */}
-			{!isAlternateBuffer && historyCommands.length > 0 && (
+			{/* Command Suggestions */}
+			{!isAlternateBuffer && suggestions.length > 0 && (
 				<div className={styles.completionContainer}>
 					<CommandCompletionBar
-						commands={historyCommands}
-						onSelect={handleHistorySelect}
+						suggestions={suggestions}
+						onSelect={handleSuggestionSelect}
 					/>
 				</div>
 			)}
