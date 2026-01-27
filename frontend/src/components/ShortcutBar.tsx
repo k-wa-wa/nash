@@ -62,7 +62,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\x1b")}
 				>
 					ESC
@@ -71,7 +70,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\t")}
 				>
 					TAB
@@ -80,7 +78,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\x03")}
 				>
 					CTRL-C
@@ -97,7 +94,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\x1b[A")}
 				>
 					<ArrowUp size={16} />
@@ -106,7 +102,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\x1b[B")}
 				>
 					<ArrowDown size={16} />
@@ -115,7 +110,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\x1b[D")}
 				>
 					<ArrowLeft size={16} />
@@ -124,7 +118,6 @@ export function ShortcutBar({ onKey }: Props) {
 					type="button"
 					style={btnStyle}
 					onMouseDown={(e) => e.preventDefault()}
-					onTouchStart={(e) => e.preventDefault()}
 					onClick={() => onKey("\x1b[C")}
 				>
 					<ArrowRight size={16} />
