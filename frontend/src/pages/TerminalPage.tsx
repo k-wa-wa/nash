@@ -12,6 +12,12 @@ import {
 } from "../components/TerminalOutput";
 import { AuthModal } from "../components/AuthModal";
 import { AiSummaryOverlay } from "../components/AiSummaryOverlay";
+import { CommandCompletionBar } from "../components/CommandCompletionBar";
+import {
+	getSuggestions,
+	parseHistoryCommands,
+	type Suggestion,
+} from "../utils/SuggestionEngine";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 import styles from "./TerminalPage.module.css";
@@ -31,6 +37,10 @@ export function TerminalPage() {
 	const [viewportHeight, setViewportHeight] = useState("100%");
 	const [isAlternateBuffer, setIsAlternateBuffer] = useState(false);
 	const [inputCmd, setInputCmd] = useState("");
+	const [historyCommands, setHistoryCommands] = useState<string[]>([]);
+
+	// Derived state for suggestions
+	const suggestions = getSuggestions(inputCmd, historyCommands);
 
 	const [connectionParams, setConnectionParams] = useState<ConnectionParams>(
 		location.state as ConnectionParams,
@@ -195,6 +205,12 @@ export function TerminalPage() {
 							showInput: true,
 						});
 						setIsAuthModalOpen(true);
+						return;
+					}
+					if (msg.type === "HISTORY_DATA") {
+						const rawHistory = msg.payload as string;
+						const parsed = parseHistoryCommands(rawHistory);
+						setHistoryCommands(parsed);
 						return;
 					}
 				} catch (_e) {
@@ -444,6 +460,21 @@ export function TerminalPage() {
 		}
 	};
 
+	const handleSuggestionSelect = (suggestion: Suggestion) => {
+		if (suggestion.type === "history") {
+			// History selection replaces current input (usually a full command)
+			setInputCmd(suggestion.text + " ");
+		} else {
+			// Static suggestion appends to current input
+			// If input ends with space, append directly. Else append space then text?
+			// "git" + "status" -> "git status"
+			// "git " + "status" -> "git status"
+			const trimmed = inputCmd.trimEnd();
+			setInputCmd(`${trimmed} ${suggestion.text} `);
+		}
+		commandInputRef.current?.focus();
+	};
+
 	return (
 		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
 			{/* Top Actions */}
@@ -499,6 +530,16 @@ export function TerminalPage() {
 				onChange={handleInputChange}
 				onEnter={executeCommand}
 			/>
+
+			{/* Command Suggestions */}
+			{!isAlternateBuffer && suggestions.length > 0 && (
+				<div className={styles.completionContainer}>
+					<CommandCompletionBar
+						suggestions={suggestions}
+						onSelect={handleSuggestionSelect}
+					/>
+				</div>
+			)}
 
 			{/* Shortcut Bar (Always visible) */}
 			<div className={styles.shortcutContainer}>

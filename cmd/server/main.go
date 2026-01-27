@@ -199,6 +199,23 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Set Resize Handler
 	wsReader.SetResizeHandler(sshClient)
 
+	// Fetch History
+	go func() {
+		history, err := sshClient.GetHistory()
+		if err != nil {
+			log.Printf("Failed to get history: %v", err)
+		} else {
+			// Send history to frontend
+			msg := map[string]interface{}{
+				"type":    "HISTORY_DATA",
+				"payload": history,
+			}
+			if err := conn.WriteJSON(msg); err != nil {
+				log.Printf("Failed to send history: %v", err)
+			}
+		}
+	}()
+
 	// Start Shell
 	log.Println("Starting Shell...")
 	errChan := make(chan error, 1)
