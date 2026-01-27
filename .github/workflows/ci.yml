@@ -56,6 +56,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+
       - name: Unit Tests
         run: npm run test:unit
 
