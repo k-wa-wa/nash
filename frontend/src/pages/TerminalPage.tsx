@@ -455,9 +455,8 @@ export function TerminalPage() {
 	};
 
 	const handleHistorySelect = (cmd: string) => {
-		handleData(`${cmd}\r`);
-		// Optionally focus terminal after command submission
-		shellRef.current?.focus();
+		setInputCmd(cmd + " "); // Add space for convenience
+		commandInputRef.current?.focus();
 	};
 
 	return (
