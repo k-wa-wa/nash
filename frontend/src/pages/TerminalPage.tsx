@@ -465,12 +465,10 @@ export function TerminalPage() {
 			// History selection replaces current input (usually a full command)
 			setInputCmd(`${suggestion.text} `);
 		} else {
-			// Static suggestion appends to current input
-			// If input ends with space, append directly. Else append space then text?
-			// "git" + "status" -> "git status"
-			// "git " + "status" -> "git status"
-			const trimmed = inputCmd.trimEnd();
-			setInputCmd(`${trimmed} ${suggestion.text} `);
+			// Static suggestion logic: Replace the last word being typed
+			const lastSpaceIndex = inputCmd.lastIndexOf(" ");
+			const prefix = lastSpaceIndex >= 0 ? inputCmd.slice(0, lastSpaceIndex + 1) : "";
+			setInputCmd(`${prefix}${suggestion.text} `);
 		}
 		commandInputRef.current?.focus();
 	};

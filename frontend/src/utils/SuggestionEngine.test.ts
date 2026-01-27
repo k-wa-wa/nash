@@ -11,22 +11,27 @@ describe("SuggestionEngine", () => {
 
     it("should return history only when input is empty", () => {
         const result = getSuggestions("", mockHistory);
-        expect(result).toEqual([
-            { text: "git status", type: "history" },
-            { text: "ls -la", type: "history" },
-            { text: "docker ps", type: "history" }
-        ]);
+        // Should contain history
+        expect(result.some(s => s.type === "history")).toBe(true);
+        // Should ALLSO contain top-level static (e.g. git, docker)
+        expect(result.some(s => s.type === "static" && s.text === "git")).toBe(true);
     });
 
     it("should return static suggestions for known command", () => {
         const result = getSuggestions("git ", mockHistory);
-        // Expect static suggestions for git
+        // Expect static suggestions for git subcommands
         expect(result.some(s => s.type === "static" && s.text === "status")).toBe(true);
+    });
+
+    it("should suggest top-level static command", () => {
+        const result = getSuggestions("do", mockHistory); // do -> docker
+        expect(result.some(s => s.type === "static" && s.text === "docker")).toBe(true);
     });
 
     it("should match history prefix", () => {
         const result = getSuggestions("doc", mockHistory);
         expect(result).toEqual([
+            { text: "docker", type: "static" },
             { text: "docker ps", type: "history" }
         ]);
     });

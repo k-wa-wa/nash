@@ -90,6 +90,16 @@ export function getSuggestions(
                 suggestions.push({ text: sub, type: "static" });
             });
         }
+    } else {
+        // Case B: Top-level commands (e.g. "" or "g" -> "git")
+        // If we are at the first word and no space yet
+        if (!input.includes(" ")) {
+            const topLevelCmds = Object.keys(STATIC_SUGGESTIONS);
+            const matches = topLevelCmds.filter(cmd => cmd.startsWith(trimmedInput));
+            matches.slice(0, 3).forEach(cmd => {
+                suggestions.push({ text: cmd, type: "static" });
+            });
+        }
     }
 
     // 2. History Suggestions
