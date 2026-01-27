@@ -25,6 +25,11 @@ import (
 //go:embed all:dist
 var assets embed.FS
 
+var (
+	BuildTime  = "unknown"
+	CommitHash = "unknown"
+)
+
 var configPath string
 
 var upgrader = websocket.Upgrader{
@@ -95,6 +100,18 @@ func handleSummarize(w http.ResponseWriter, r *http.Request) {
 	// simple response
 	//nolint:errchkjson // simple response
 	_ = json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+}
+
+func handleInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	info := map[string]string{
+		"buildTime":  BuildTime,
+		"commitHash": CommitHash,
+	}
+	//nolint:errchkjson // simple response
+	_ = json.NewEncoder(w).Encode(info)
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -199,6 +216,23 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Set Resize Handler
 	wsReader.SetResizeHandler(sshClient)
 
+	// Fetch History
+	go func() {
+		history, err := sshClient.GetHistory()
+		if err != nil {
+			log.Printf("Failed to get history: %v", err)
+		} else {
+			// Send history to frontend
+			msg := map[string]interface{}{
+				"type":    "HISTORY_DATA",
+				"payload": history,
+			}
+			if err := conn.WriteJSON(msg); err != nil {
+				log.Printf("Failed to send history: %v", err)
+			}
+		}
+	}()
+
 	// Start Shell
 	log.Println("Starting Shell...")
 	errChan := make(chan error, 1)
@@ -237,6 +271,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.FS(fsys)))
 	http.HandleFunc("/api/hosts", handleHosts)
 	http.HandleFunc("/api/summarize", handleSummarize)
+	http.HandleFunc("/api/info", handleInfo)
 	http.HandleFunc("/ws", handleWebSocket)
 
 	port := 8080

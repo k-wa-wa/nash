@@ -148,3 +148,29 @@
 .switch input:checked + .slider:before {
 	transform: translateX(24px);
 }
+
+.footer {
+	margin-top: auto;
+	padding: 24px;
+	border-top: 1px solid rgba(255, 255, 255, 0.05);
+	background: rgba(40, 44, 52, 0.2);
+}
+
+.versionInfo {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	align-items: center;
+	opacity: 0.5;
+}
+
+.versionValue {
+	font-size: 0.7rem;
+	color: rgba(255, 255, 255, 0.6);
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.versionValue span {
+	color: #fff;
+	font-weight: 500;
+}

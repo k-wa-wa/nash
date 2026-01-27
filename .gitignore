@@ -25,4 +25,10 @@ yarn-error.log*
 
 # Env
 .env
+.env.sh
 .env.local
+
+# Test artifacts
+.backend.pid
+.frontend.pid
+*.test.log

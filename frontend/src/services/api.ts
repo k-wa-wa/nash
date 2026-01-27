@@ -32,3 +32,18 @@ export async function fetchHosts(): Promise<SSHHost[]> {
 		return [];
 	}
 }
+export interface BuildInfo {
+	buildTime: string;
+	commitHash: string;
+}
+
+export async function fetchBuildInfo(): Promise<BuildInfo | null> {
+	try {
+		const res = await fetch(`${API_BASE}/api/info`);
+		if (!res.ok) return null;
+		return await res.json();
+	} catch (e) {
+		console.warn("API error", e);
+		return null;
+	}
+}
