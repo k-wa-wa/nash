@@ -137,3 +137,22 @@ func (c *Client) Close() {
 		log.Printf("SSH connection to %s:%d closed.", c.Host, c.Port)
 	}
 }
+
+// GetHistory retrieves the command history from the remote server.
+func (c *Client) GetHistory() (string, error) {
+	session, err := c.NewSession()
+	if err != nil {
+		return "", fmt.Errorf("failed to create session: %w", err)
+	}
+	defer session.Close()
+
+	// Try to read history files. Supports zsh and bash.
+	// 2>/dev/null suppresses error messages if a file doesn't exist.
+	cmd := "cat ~/.zsh_history 2>/dev/null || cat ~/.bash_history 2>/dev/null"
+	output, err := session.CombinedOutput(cmd)
+	if err != nil {
+		return "", fmt.Errorf("failed to run history command: %w", err)
+	}
+
+	return string(output), nil
+}

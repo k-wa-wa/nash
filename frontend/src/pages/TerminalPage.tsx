@@ -12,6 +12,8 @@ import {
 } from "../components/TerminalOutput";
 import { AuthModal } from "../components/AuthModal";
 import { AiSummaryOverlay } from "../components/AiSummaryOverlay";
+import { CommandCompletionBar } from "../components/CommandCompletionBar";
+import { parseHistoryCommands } from "../utils/historyParser";
 import type { ConnectionParams } from "../services/api";
 import { API_BASE } from "../services/api";
 import styles from "./TerminalPage.module.css";
@@ -31,6 +33,7 @@ export function TerminalPage() {
 	const [viewportHeight, setViewportHeight] = useState("100%");
 	const [isAlternateBuffer, setIsAlternateBuffer] = useState(false);
 	const [inputCmd, setInputCmd] = useState("");
+	const [historyCommands, setHistoryCommands] = useState<string[]>([]);
 
 	const [connectionParams, setConnectionParams] = useState<ConnectionParams>(
 		location.state as ConnectionParams,
@@ -155,11 +158,12 @@ export function TerminalPage() {
 				}, 100);
 			};
 
+
 			socket.onmessage = (ev) => {
-				// Try parsing JSON first for special messages
 				try {
 					const msg = JSON.parse(ev.data);
 					if (msg.type === "AUTH_CHALLENGE") {
+						// ... existing auth challenge logic ...
 						// msg.payload is already the object because Go's json.RawMessage embeds it raw
 						const challenge = msg.payload as ChallengeState;
 
@@ -195,6 +199,12 @@ export function TerminalPage() {
 							showInput: true,
 						});
 						setIsAuthModalOpen(true);
+						return;
+					}
+					if (msg.type === "HISTORY_DATA") {
+						const rawHistory = msg.payload as string;
+						const parsed = parseHistoryCommands(rawHistory);
+						setHistoryCommands(parsed);
 						return;
 					}
 				} catch (_e) {
@@ -444,6 +454,12 @@ export function TerminalPage() {
 		}
 	};
 
+	const handleHistorySelect = (cmd: string) => {
+		handleData(`${cmd}\r`);
+		// Optionally focus terminal after command submission
+		shellRef.current?.focus();
+	};
+
 	return (
 		<div className={styles.pageContainer} style={{ height: viewportHeight }}>
 			{/* Top Actions */}
@@ -499,6 +515,16 @@ export function TerminalPage() {
 				onChange={handleInputChange}
 				onEnter={executeCommand}
 			/>
+
+			{/* Command Completion Bar */}
+			{!isAlternateBuffer && historyCommands.length > 0 && (
+				<div className={styles.completionContainer}>
+					<CommandCompletionBar
+						commands={historyCommands}
+						onSelect={handleHistorySelect}
+					/>
+				</div>
+			)}
 
 			{/* Shortcut Bar (Always visible) */}
 			<div className={styles.shortcutContainer}>

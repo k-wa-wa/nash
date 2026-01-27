@@ -25,4 +25,5 @@ yarn-error.log*
 
 # Env
 .env
+.env.sh
 .env.local
