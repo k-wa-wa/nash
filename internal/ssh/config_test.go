@@ -8,12 +8,8 @@ import (
 )
 
 func TestParseConfig(t *testing.T) {
-	// Create a temporary directory for the test config
-	tmpDir, err := os.MkdirTemp("", "nash_ssh_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	// Create a temporary directory for	// Create temp dir
+	tmpDir := t.TempDir()
 
 	configPath := filepath.Join(tmpDir, "config")
 	content := `
@@ -30,7 +26,7 @@ Host keyonly
 Host wildcard*
     HostName wildcard.com
 `
-	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -111,16 +107,12 @@ func TestParseConfig_NoFile(t *testing.T) {
 }
 
 func TestParseConfig_EmptyContent(t *testing.T) {
-	// Create a temporary directory for the test config
-	tmpDir, err := os.MkdirTemp("", "nash_ssh_test_empty")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	// Create a temporary directory for	// Create temp dir
+	tmpDir := t.TempDir()
 
 	configPath := filepath.Join(tmpDir, "config")
 	// Write empty content (or just comments)
-	if err := os.WriteFile(configPath, []byte("# Just a comment"), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte("# Just a comment"), 0o600); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 

@@ -77,7 +77,7 @@ func (c *Client) Connect() error {
 	config := &ssh.ClientConfig{
 		User:            c.User,
 		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 開発中はホストキーチェックを無効化
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec // 開発中はホストキーチェックを無効化
 		Timeout:         30 * time.Second,            // インタラクティブ認証のためにタイムアウトを延長
 	}
 

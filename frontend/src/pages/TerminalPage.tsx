@@ -197,7 +197,7 @@ export function TerminalPage() {
 						setIsAuthModalOpen(true);
 						return;
 					}
-				} catch (e) {
+				} catch (_e) {
 					// Not JSON, treat as standard text output
 				}
 
