@@ -72,7 +72,11 @@ export function CommandCompletionBar({ suggestions, onSelect }: Props) {
                         key={`${s.type}-${s.text}`}
                         type="button"
                         style={getStyle(s.type)}
-                        onClick={() => onSelect(s)}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onSelect(s);
+                        }}
                     >
                         {s.text}
                     </button>
