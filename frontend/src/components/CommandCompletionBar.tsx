@@ -72,6 +72,8 @@ export function CommandCompletionBar({ suggestions, onSelect }: Props) {
                         key={`${s.type}-${s.text}`}
                         type="button"
                         style={getStyle(s.type)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();

@@ -58,13 +58,31 @@ export function ShortcutBar({ onKey }: Props) {
 				<style>{`
                     .scroll-area::-webkit-scrollbar { display: none; }
                 `}</style>
-				<button type="button" style={btnStyle} onClick={() => onKey("\x1b")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\x1b")}
+				>
 					ESC
 				</button>
-				<button type="button" style={btnStyle} onClick={() => onKey("\t")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\t")}
+				>
 					TAB
 				</button>
-				<button type="button" style={btnStyle} onClick={() => onKey("\x03")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\x03")}
+				>
 					CTRL-C
 				</button>
 				<div
@@ -75,16 +93,40 @@ export function ShortcutBar({ onKey }: Props) {
 						margin: "0 2px",
 					}}
 				/>
-				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[A")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\x1b[A")}
+				>
 					<ArrowUp size={16} />
 				</button>
-				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[B")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\x1b[B")}
+				>
 					<ArrowDown size={16} />
 				</button>
-				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[D")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\x1b[D")}
+				>
 					<ArrowLeft size={16} />
 				</button>
-				<button type="button" style={btnStyle} onClick={() => onKey("\x1b[C")}>
+				<button
+					type="button"
+					style={btnStyle}
+					onMouseDown={(e) => e.preventDefault()}
+					onTouchStart={(e) => e.preventDefault()}
+					onClick={() => onKey("\x1b[C")}
+				>
 					<ArrowRight size={16} />
 				</button>
 				{/* Spacer to ensure last item is reachable despite mask */}

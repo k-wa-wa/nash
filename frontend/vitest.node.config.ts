@@ -2,8 +2,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
     test: {
-        environment: "node",
-        include: ["src/**/*.test.ts"],
-        exclude: ["src/**/*.spec.ts"], // Exclude browser tests if any
+        globals: true, // Enable globals for jest-dom compatibility
+        environment: "jsdom",
+        include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+        exclude: ["src/**/*.spec.ts"],
     },
 });

@@ -13,19 +13,28 @@ describe("SuggestionEngine", () => {
         const result = getSuggestions("", mockHistory);
         // Should contain history
         expect(result.some(s => s.type === "history")).toBe(true);
-        // Should ALLSO contain top-level static (e.g. git, docker)
+        // Should ALSO contain top-level static (e.g. git, docker)
         expect(result.some(s => s.type === "static" && s.text === "git")).toBe(true);
     });
 
-    it("should return static suggestions for known command", () => {
+    it("should suggest top-level static commands and match prefix", () => {
+        const result = getSuggestions("g", mockHistory);
+        expect(result.some(s => s.type === "static" && s.text === "git")).toBe(true);
+        expect(result.some(s => s.type === "static" && s.text === "go")).toBe(true);
+    });
+
+    it("should return static suggestions for known command when there is a space", () => {
         const result = getSuggestions("git ", mockHistory);
         // Expect static suggestions for git subcommands
         expect(result.some(s => s.type === "static" && s.text === "status")).toBe(true);
+        expect(result.some(s => s.type === "static" && s.text === "commit")).toBe(true);
     });
 
-    it("should suggest top-level static command", () => {
-        const result = getSuggestions("do", mockHistory); // do -> docker
-        expect(result.some(s => s.type === "static" && s.text === "docker")).toBe(true);
+    it("should filter static subcommands based on partial argument", () => {
+        const result = getSuggestions("git pu", mockHistory);
+        expect(result.some(s => s.type === "static" && s.text === "push")).toBe(true);
+        expect(result.some(s => s.type === "static" && s.text === "pull")).toBe(true);
+        expect(result.some(s => s.text === "status")).toBe(false);
     });
 
     it("should match history prefix", () => {
