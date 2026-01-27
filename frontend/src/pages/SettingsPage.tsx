@@ -73,7 +73,8 @@ export function SettingsPage() {
 								Commit: <span>{buildInfo.commitHash}</span>
 							</div>
 							<div className={styles.versionValue}>
-								Build: <span>{new Date(buildInfo.buildTime).toLocaleString()}</span>
+								Build:{" "}
+								<span>{new Date(buildInfo.buildTime).toLocaleString()}</span>
 							</div>
 						</>
 					) : (

@@ -140,12 +140,12 @@
 	border-radius: 50%;
 }
 
-.switch input:checked+.slider {
+.switch input:checked + .slider {
 	background-color: #a0c0ff;
 	box-shadow: 0 0 15px rgba(160, 192, 255, 0.4);
 }
 
-.switch input:checked+.slider:before {
+.switch input:checked + .slider:before {
 	transform: translateX(24px);
 }
 

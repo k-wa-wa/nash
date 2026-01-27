@@ -467,7 +467,8 @@ export function TerminalPage() {
 		} else {
 			// Static suggestion logic: Replace the last word being typed
 			const lastSpaceIndex = inputCmd.lastIndexOf(" ");
-			const prefix = lastSpaceIndex >= 0 ? inputCmd.slice(0, lastSpaceIndex + 1) : "";
+			const prefix =
+				lastSpaceIndex >= 0 ? inputCmd.slice(0, lastSpaceIndex + 1) : "";
 			setInputCmd(`${prefix}${suggestion.text} `);
 		}
 		commandInputRef.current?.focus();

@@ -17,7 +17,9 @@ COPY --from=frontend-builder /app/cmd/server/dist ./cmd/server/dist
 # Build static binary
 # -ldflags="-w -s": Reduce binary size by stripping debug info
 # CGO_ENABLED=0: Ensure static linking
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o nash ./cmd/server
+ARG BUILD_TIME=unknown
+ARG COMMIT_HASH=unknown
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X main.BuildTime=${BUILD_TIME} -X main.CommitHash=${COMMIT_HASH}" -o nash ./cmd/server
 
 # Stage 3: Runtime
 FROM scratch
