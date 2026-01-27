@@ -11,7 +11,8 @@ build-storybook:
 	cd frontend && npm run build-storybook
 
 test-all: export CI=true
-test-all: mock-up
+test-all:
+	-$(MAKE) mock-up
 	@if ! lsof -i :8080 > /dev/null; then \
 		echo "Starting backend for tests..."; \
 		DEV_MODE=true go run cmd/server/main.go -config e2e/ssh_server/ssh_config > backend.test.log 2>&1 & \
