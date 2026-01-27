@@ -91,6 +91,15 @@ func (c *Client) Connect() error {
 	return nil
 }
 
+// NewSession creates a new SSH session.
+func (c *Client) NewSession() (*ssh.Session, error) {
+	session, err := c.Client.NewSession()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+	return session, nil
+}
+
 // StartShell starts an interactive shell session over SSH.
 func (c *Client) StartShell(stdin io.Reader, stdout, stderr io.Writer) error {
 	session, err := c.NewSession()

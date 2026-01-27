@@ -108,7 +108,7 @@ export function getSuggestions(
 
     // Deduplicate logic just in case
     const unique = new Map<string, Suggestion>();
-    suggestions.forEach(s => unique.set(s.text, s));
+    suggestions.forEach(s => { unique.set(s.text, s); });
 
     return Array.from(unique.values()).slice(0, 6);
 }

@@ -463,7 +463,7 @@ export function TerminalPage() {
 	const handleSuggestionSelect = (suggestion: Suggestion) => {
 		if (suggestion.type === "history") {
 			// History selection replaces current input (usually a full command)
-			setInputCmd(suggestion.text + " ");
+			setInputCmd(`${suggestion.text} `);
 		} else {
 			// Static suggestion appends to current input
 			// If input ends with space, append directly. Else append space then text?
