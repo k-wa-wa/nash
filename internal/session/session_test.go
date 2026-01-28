@@ -14,10 +14,11 @@ func TestManager(t *testing.T) {
 	// We'll stick to Manager logic test which relies on ID.
 
 	s := &Session{
-		ID:         "sess-1",
-		CreatedAt:  time.Now(),
-		LastActive: time.Now(),
-		output:     &SwitchableWriter{},
+		ID:              "sess-1",
+		CreatedAt:       time.Now(),
+		LastActive:      time.Now(),
+		output:          &SwitchableWriter{},
+		keepaliveStopCh: make(chan struct{}),
 	}
 
 	m.Add(s)

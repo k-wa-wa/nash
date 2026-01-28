@@ -21,7 +21,15 @@ func (w *SwitchableWriter) Write(p []byte) (n int, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.target != nil {
-		return w.target.Write(p)
+		n, err = w.target.Write(p)
+		if err != nil {
+			// If writing to target fails (e.g. WS closed), we detach and suppress error
+			// so that the SSH session remains active (output goes to void).
+			log.Printf("SwitchableWriter: target write failed, detaching: %v", err)
+			w.target = nil
+			return len(p), nil
+		}
+		return n, nil
 	}
 	// If no target, we drop the output but return success to avoid breaking the helper
 	return len(p), nil

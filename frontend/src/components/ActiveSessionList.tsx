@@ -39,11 +39,7 @@ export function ActiveSessionList({
 				{sorted.map((s) => (
 					// biome-ignore lint/a11y/useKeyWithClickEvents: Interactive list item
 					// biome-ignore lint/a11y/noStaticElementInteractions: Interactive list item
-					<div
-						key={s.id}
-						className={styles.item}
-						onClick={() => onResume(s)}
-					>
+					<div key={s.id} className={styles.item} onClick={() => onResume(s)}>
 						<div className={styles.info}>
 							<div className={styles.host}>
 								{/* <Terminal size={18} /> */}
