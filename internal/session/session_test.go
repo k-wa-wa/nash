@@ -12,7 +12,7 @@ func TestManager(t *testing.T) {
 	// Mock session (without SSH client for simplicity in this test, or use dummy)
 	// Since NewSession requires *ssh.Client, we'll manually create struct or mock.
 	// We'll stick to Manager logic test which relies on ID.
-	
+
 	s := &Session{
 		ID:         "sess-1",
 		CreatedAt:  time.Now(),
@@ -66,7 +66,7 @@ func TestSwitchableWriter(t *testing.T) {
 
 	// Case 3: Switch/Detach
 	sw.SetTarget(nil)
-	sw.Write([]byte("ignore"))
+	_, _ = sw.Write([]byte("ignore"))
 	if buf.String() != "world" {
 		t.Errorf("Buffer should not change after detach")
 	}
