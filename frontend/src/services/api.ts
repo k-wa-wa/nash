@@ -47,3 +47,23 @@ export async function fetchBuildInfo(): Promise<BuildInfo | null> {
 		return null;
 	}
 }
+
+export interface ActiveSession {
+	id: string;
+	host: string;
+	user: string;
+	port: number;
+	createdAt: string;
+	lastActive: string;
+}
+
+export async function fetchSessions(): Promise<ActiveSession[]> {
+	try {
+		const res = await fetch(`${API_BASE}/api/sessions`);
+		if (!res.ok) return [];
+		return await res.json();
+	} catch (e) {
+		console.warn("API error", e);
+		return [];
+	}
+}

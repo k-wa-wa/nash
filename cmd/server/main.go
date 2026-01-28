@@ -3,11 +3,13 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
 	"log"
 	"nash/internal/ai"
+	"nash/internal/session"
 	"nash/internal/ssh"
 	"nash/internal/ws"
 	"net"
@@ -31,6 +33,9 @@ var (
 )
 
 var configPath string
+
+// Global session manager
+var sessionManager *session.Manager
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -62,6 +67,26 @@ func handleHosts(w http.ResponseWriter, r *http.Request) {
 	// simple echo
 	//nolint:errchkjson // simple echo
 	_ = json.NewEncoder(w).Encode(hosts)
+}
+
+func handleSessions(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == http.MethodOptions {
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessions := sessionManager.List()
+	//nolint:errchkjson // simple response
+	_ = json.NewEncoder(w).Encode(sessions)
 }
 
 func handleSummarize(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +147,41 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	// 1. Try to resume existing session
+	sess := tryResumeSession(r)
+
+	// 2. If no session, authenticate and create one
+	if sess == nil {
+		sess, err = createNewSession(conn, r)
+		if err != nil {
+			// Error is already logged/sent to client in createNewSession
+			return
+		}
+	}
+
+	// 3. Send Session ID for re-cookie
+	msg := map[string]string{
+		"type":      "SESSION_ID",
+		"sessionId": sess.ID,
+	}
+	_ = conn.WriteJSON(msg)
+
+	// Attach & Loop
+	attachAndLoop(conn, sess)
+}
+
+func tryResumeSession(r *http.Request) *session.Session {
+	cookie, err := r.Cookie("nash-session")
+	if err == nil && cookie.Value != "" {
+		if s, ok := sessionManager.Get(cookie.Value); ok {
+			log.Printf("Resuming session: %s", s.ID)
+			return s
+		}
+	}
+	return nil
+}
+
+func createNewSession(conn *websocket.Conn, r *http.Request) (*session.Session, error) {
 	// Get connection params from Query
 	query := r.URL.Query()
 	host := query.Get("host")
@@ -135,7 +195,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	if host == "" || user == "" {
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("Error: Missing host or user parameters"))
-		return
+		return nil, errors.New("missing params")
 	}
 
 	port, err := strconv.Atoi(portStr)
@@ -143,7 +203,42 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		port = 22
 	}
 
-	// Auth types
+	challengeHandler := makeChallengeHandler(conn)
+
+	log.Printf("Connecting to %s@%s:%d", user, host, port)
+
+	sshClient := ssh.NewClient(host, port, user, pass, identityFile, identityKey, challengeHandler)
+	if err := sshClient.Connect(); err != nil {
+		log.Printf("Failed to connect to SSH: %v", err)
+		if strings.Contains(err.Error(), "unable to authenticate") ||
+			strings.Contains(err.Error(), "handshake failed") ||
+			strings.Contains(err.Error(), "unexpected message type 51") {
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("AUTH_REQUIRED"))
+		} else {
+			_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))
+		}
+		return nil, err
+	}
+
+	sess := session.NewSession(sshClient, host, user, port)
+	sessionManager.Add(sess)
+	log.Printf("Created new session: %s", sess.ID)
+
+	// Start background runner
+	go func() {
+		err := sess.Run()
+		if err != nil {
+			log.Printf("Session %s ended with error: %v", sess.ID, err)
+		} else {
+			log.Printf("Session %s ended normally", sess.ID)
+		}
+		sessionManager.Remove(sess.ID)
+	}()
+
+	return sess, nil
+}
+
+func makeChallengeHandler(conn *websocket.Conn) ssh.ChallengeHandler {
 	type AuthMessage struct {
 		Type    string          `json:"type"`
 		Payload json.RawMessage `json:"payload"`
@@ -157,13 +252,13 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Answers []string `json:"answers"`
 	}
 
-	challengeHandler := func(instruction string, questions []string, echos []bool) ([]string, error) {
+	return func(instruction string, questions []string, echos []bool) ([]string, error) {
 		payload := ChallengePayload{
 			Instruction: instruction,
 			Questions:   questions,
 			Echos:       echos,
 		}
-		payloadBytes, _ := json.Marshal(payload) //nolint:errchkjson // struct is safe
+		payloadBytes, _ := json.Marshal(payload)
 		msg := AuthMessage{
 			Type:    "AUTH_CHALLENGE",
 			Payload: payloadBytes,
@@ -192,74 +287,63 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			log.Printf("DEBUG: Ignored message type during auth: %s", res.Type)
 		}
 	}
+}
 
-	log.Printf("Connecting to %s@%s:%d", user, host, port)
-
-	sshClient := ssh.NewClient(host, port, user, pass, identityFile, identityKey, challengeHandler)
-	if err := sshClient.Connect(); err != nil {
-		log.Printf("Failed to connect to SSH: %v", err)
-		if strings.Contains(err.Error(), "unable to authenticate") ||
-			strings.Contains(err.Error(), "handshake failed") ||
-			strings.Contains(err.Error(), "unexpected message type 51") {
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("AUTH_REQUIRED"))
-		} else {
-			_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v", err)))
-		}
-		return
-	}
-	defer sshClient.Close()
-
-	// WebSocket Reader/Writer
-	wsReader := ws.NewReader(conn)
+func attachAndLoop(conn *websocket.Conn, sess *session.Session) {
+	// Attach WS to session output
 	wsWriter := ws.NewWriter(conn)
+	wsReader := ws.NewReader(conn)
 
-	// Set Resize Handler
-	wsReader.SetResizeHandler(sshClient)
+	// Resize handler
+	wsReader.SetResizeHandler(sess)
 
-	// Fetch History
+	sess.Attach(wsWriter)
+	defer sess.Detach()
+
+	// If session is new, we might want to fetch history?
+	// Existing code:
+	// Go routine to fetch history.
 	go func() {
-		history, err := sshClient.GetHistory()
+		history, err := sess.SSHClient.GetHistory()
 		if err != nil {
 			log.Printf("Failed to get history: %v", err)
 		} else {
-			// Send history to frontend
 			msg := map[string]interface{}{
 				"type":    "HISTORY_DATA",
 				"payload": history,
 			}
-			if err := conn.WriteJSON(msg); err != nil {
-				log.Printf("Failed to send history: %v", err)
+			_ = conn.WriteJSON(msg)
+		}
+	}()
+
+	buffer := make([]byte, 1024)
+	for {
+		n, err := wsReader.Read(buffer)
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("WS error: %v", err)
+			} else {
+				log.Println("WS connection closed normally")
+			}
+			break
+		}
+		if n > 0 {
+			_, wErr := sess.WriteInput(buffer[:n])
+			if wErr != nil {
+				log.Printf("Failed to write to session (closed?): %v", wErr)
+				_ = conn.WriteMessage(websocket.TextMessage, []byte("\r\nSession closed.\r\n"))
+				break
 			}
 		}
-	}()
-
-	// Start Shell
-	log.Println("Starting Shell...")
-	errChan := make(chan error, 1)
-	go func() {
-		err := sshClient.StartShell(wsReader, wsWriter, wsWriter)
-		log.Printf("StartShell returned: %v", err)
-		errChan <- err
-	}()
-
-	select {
-	case err := <-errChan:
-		if err != nil {
-			log.Printf("SSH session ended with error: %v", err)
-			_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("\r\nSSH session ended with error: %v", err)))
-		} else {
-			log.Println("SSH session ended normally")
-			_ = conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session ended normally\r\n"))
-		}
-	case <-time.After(60 * time.Minute): // Timeout 1 hour
-		log.Println("SSH session timed out.")
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("\r\nSSH session timed out."))
 	}
 }
 
 func main() {
 	flag.StringVar(&configPath, "config", "", "Path to additional SSH config file")
 	flag.Parse()
+
+	// Initialize Session Manager
+	sessionManager = session.NewManager()
 
 	// Serve static files from embedded FS
 	// The dist folder is at "dist" inside the embed
@@ -270,6 +354,7 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.FS(fsys)))
 	http.HandleFunc("/api/hosts", handleHosts)
+	http.HandleFunc("/api/sessions", handleSessions)
 	http.HandleFunc("/api/summarize", handleSummarize)
 	http.HandleFunc("/api/info", handleInfo)
 	http.HandleFunc("/ws", handleWebSocket)

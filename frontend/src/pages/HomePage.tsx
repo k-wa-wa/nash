@@ -3,17 +3,26 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ConnectForm } from "../components/ConnectForm";
 import { HostList } from "../components/HostList";
-import type { SSHHost } from "../services/api";
-import { fetchHosts } from "../services/api";
+import type { SSHHost, ActiveSession } from "../services/api";
+import { fetchHosts, fetchSessions } from "../services/api";
+import { ActiveSessionList } from "../components/ActiveSessionList";
 import styles from "./HomePage.module.css";
 
 export function HomePage() {
 	const [hosts, setHosts] = useState<SSHHost[]>([]);
+	const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [showSkeleton, setShowSkeleton] = useState(false);
 	const navigate = useNavigate();
 
 	useEffect(() => {
+		const loadData = async () => {
+			const [h, s] = await Promise.all([fetchHosts(), fetchSessions()]);
+			setHosts(h);
+			setActiveSessions(s);
+			setIsLoading(false);
+		};
+
 		setIsLoading(true);
 		setShowSkeleton(false);
 
@@ -22,13 +31,20 @@ export function HomePage() {
 			setShowSkeleton(true);
 		}, 200);
 
-		fetchHosts().then((data) => {
-			setHosts(data);
-			setIsLoading(false);
+		loadData().then(() => {
 			clearTimeout(timer);
 		});
 
-		return () => clearTimeout(timer);
+		// Polling for active sessions
+		const interval = setInterval(async () => {
+			const sessions = await fetchSessions();
+			setActiveSessions(sessions);
+		}, 5000);
+
+		return () => {
+			clearTimeout(timer);
+			clearInterval(interval);
+		};
 	}, []);
 
 	const connect = (
@@ -63,6 +79,34 @@ export function HomePage() {
 		);
 	};
 
+	const handleResume = (s: ActiveSession) => {
+		// Set cookie via simple hack or just navigate?
+		// We can't easily set HttpOnly cookie from JS if it was HttpOnly.
+		// But our cookie is NOT HttpOnly based on previous implementation (JS set it).
+		// So we can set it here to resume specific ID!
+		// Wait, user might pick any session.
+		// If we set cookie `nash-session=ID`, then navigate to /terminal, backend will resume it.
+		// Logic matches implementation in TerminalPage/Backend.
+		const isSecure = window.location.protocol === "https:";
+		// biome-ignore lint/suspicious/noDocumentCookie: Cookie is used for session resumption
+		document.cookie = `nash-session=${s.id}; path=/; max-age=1800; ${isSecure ? "secure;" : ""} samesite=strict`;
+
+		// Navigate with minimal params (backend has the rest)
+		// But TerminalPage expects connectionParams in location.state?
+		// The `useEffect` in `TerminalPage` checks `connectionParams`.
+		// If state is missing, it redirects to `/`.
+		// So we MUST pass valid-ish params.
+		// We have host/user/port from session info.
+		navigate("/terminal", {
+			state: {
+				host: s.host,
+				user: s.user,
+				port: s.port.toString(),
+				authType: "none", // Already authenticated
+			},
+		});
+	};
+
 	return (
 		<div className="container">
 			<div className={styles.headerContainer}>
@@ -79,6 +123,8 @@ export function HomePage() {
 					<Settings size={24} />
 				</button>
 			</div>
+
+			<ActiveSessionList sessions={activeSessions} onResume={handleResume} />
 
 			<section className={styles.section}>
 				<h2>Available Hosts</h2>
