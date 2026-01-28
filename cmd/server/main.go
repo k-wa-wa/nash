@@ -78,7 +78,7 @@ func handleSessions(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
-	
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -258,7 +258,7 @@ func makeChallengeHandler(conn *websocket.Conn) ssh.ChallengeHandler {
 			Questions:   questions,
 			Echos:       echos,
 		}
-		payloadBytes, _ := json.Marshal(payload) //nolint:errchkjson // struct is safe
+		payloadBytes, _ := json.Marshal(payload)
 		msg := AuthMessage{
 			Type:    "AUTH_CHALLENGE",
 			Payload: payloadBytes,

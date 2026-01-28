@@ -48,25 +48,25 @@ type Session struct {
 	stdinPw *io.PipeWriter
 	output  *SwitchableWriter
 
-	doneCh         chan struct{}
+	doneCh          chan struct{}
 	keepaliveStopCh chan struct{}
-	closed         bool
+	closed          bool
 }
 
 // NewSession creates a new session (generating ID) but does not start it yet.
 func NewSession(client *ssh.Client, host, user string, port int) *Session {
 	id := generateID()
 	return &Session{
-		ID:             id,
-		Host:           host,
-		User:           user,
-		Port:           port,
-		SSHClient:      client,
-		output:         &SwitchableWriter{},
-		doneCh:         make(chan struct{}),
+		ID:              id,
+		Host:            host,
+		User:            user,
+		Port:            port,
+		SSHClient:       client,
+		output:          &SwitchableWriter{},
+		doneCh:          make(chan struct{}),
 		keepaliveStopCh: make(chan struct{}),
-		CreatedAt:      time.Now(),
-		LastActive:     time.Now(),
+		CreatedAt:       time.Now(),
+		LastActive:      time.Now(),
 	}
 }
 
@@ -74,10 +74,10 @@ func NewSession(client *ssh.Client, host, user string, port int) *Session {
 // It should be run in a goroutine.
 func (s *Session) Run() error {
 	defer close(s.doneCh)
-	
+
 	// Start Keepalive
 	go s.runKeepalive()
-	
+
 	r, w := io.Pipe()
 	s.mu.Lock()
 	s.stdinPw = w
@@ -107,8 +107,6 @@ func (s *Session) runKeepalive() {
 			_, _, err := s.SSHClient.SendRequest("keepalive@openssh.com", true, nil)
 			if err != nil {
 				log.Printf("Session %s: keepalive failed: %v", s.ID, err)
-			} else {
-				// log.Printf("DEBUG: Session %s: keepalive sent", s.ID)
 			}
 			s.mu.Unlock()
 		case <-s.keepaliveStopCh:
@@ -165,7 +163,7 @@ func (s *Session) Close() {
 		return
 	}
 	s.closed = true
-	
+
 	// Signal keepalive to stop
 	close(s.keepaliveStopCh)
 
@@ -228,8 +226,8 @@ func (m *Manager) Get(id string) (*Session, bool) {
 func (m *Manager) List() []SessionInfo {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
-	var list []SessionInfo
+
+	list := make([]SessionInfo, 0, len(m.sessions))
 	for _, s := range m.sessions {
 		s.mu.Lock()
 		list = append(list, SessionInfo{

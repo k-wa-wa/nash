@@ -1,93 +1,93 @@
 .container {
-    margin-bottom: 24px;
-    background-color: var(--color-bg-secondary);
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid var(--color-border);
+	margin-bottom: 24px;
+	background-color: var(--color-bg-secondary);
+	border-radius: 12px;
+	padding: 16px;
+	border: 1px solid var(--color-border);
 }
 
 .title {
-    margin: 0 0 12px 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+	margin: 0 0 12px 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--color-text-primary);
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .icon {
-    color: var(--color-accent);
+	color: var(--color-accent);
 }
 
 .list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 
 .item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px;
-    background-color: var(--color-bg-primary);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px;
+	background-color: var(--color-bg-primary);
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	border: 1px solid transparent;
 }
 
 .item:hover {
-    border-color: var(--color-accent);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	border-color: var(--color-accent);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .host {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    color: var(--color-text-primary);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 500;
+	color: var(--color-text-primary);
 }
 
 .hostName {
-    font-size: 1rem;
+	font-size: 1rem;
 }
 
 .user {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
-    font-weight: normal;
+	font-size: 0.85rem;
+	color: var(--color-text-secondary);
+	font-weight: normal;
 }
 
 .meta {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    color: var(--color-text-tertiary);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.75rem;
+	color: var(--color-text-tertiary);
 }
 
 .resumeBtn {
-    background-color: var(--color-accent);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.2s;
+	background-color: var(--color-accent);
+	color: white;
+	border: none;
+	padding: 6px 12px;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: opacity 0.2s;
 }
 
 .resumeBtn:hover {
-    opacity: 0.9;
+	opacity: 0.9;
 }
