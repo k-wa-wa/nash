@@ -37,6 +37,9 @@ func (w *SwitchableWriter) SetTarget(t io.Writer) {
 // Session represents a persistent SSH session.
 type Session struct {
 	ID         string
+	Host       string
+	User       string
+	Port       int
 	SSHClient  *ssh.Client
 	CreatedAt  time.Time
 	LastActive time.Time
@@ -45,20 +48,25 @@ type Session struct {
 	stdinPw *io.PipeWriter
 	output  *SwitchableWriter
 
-	doneCh chan struct{}
-	closed bool
+	doneCh         chan struct{}
+	keepaliveStopCh chan struct{}
+	closed         bool
 }
 
 // NewSession creates a new session (generating ID) but does not start it yet.
-func NewSession(client *ssh.Client) *Session {
+func NewSession(client *ssh.Client, host, user string, port int) *Session {
 	id := generateID()
 	return &Session{
-		ID:         id,
-		SSHClient:  client,
-		output:     &SwitchableWriter{},
-		doneCh:     make(chan struct{}),
-		CreatedAt:  time.Now(),
-		LastActive: time.Now(),
+		ID:             id,
+		Host:           host,
+		User:           user,
+		Port:           port,
+		SSHClient:      client,
+		output:         &SwitchableWriter{},
+		doneCh:         make(chan struct{}),
+		keepaliveStopCh: make(chan struct{}),
+		CreatedAt:      time.Now(),
+		LastActive:     time.Now(),
 	}
 }
 
@@ -66,6 +74,10 @@ func NewSession(client *ssh.Client) *Session {
 // It should be run in a goroutine.
 func (s *Session) Run() error {
 	defer close(s.doneCh)
+	
+	// Start Keepalive
+	go s.runKeepalive()
+	
 	r, w := io.Pipe()
 	s.mu.Lock()
 	s.stdinPw = w
@@ -76,6 +88,33 @@ func (s *Session) Run() error {
 
 	s.Close()
 	return err
+}
+
+func (s *Session) runKeepalive() {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			s.mu.Lock()
+			if s.closed || s.SSHClient == nil {
+				s.mu.Unlock()
+				return
+			}
+			// Send global request for keepalive
+			// We just ignore the reply
+			_, _, err := s.SSHClient.SendRequest("keepalive@openssh.com", true, nil)
+			if err != nil {
+				log.Printf("Session %s: keepalive failed: %v", s.ID, err)
+			} else {
+				// log.Printf("DEBUG: Session %s: keepalive sent", s.ID)
+			}
+			s.mu.Unlock()
+		case <-s.keepaliveStopCh:
+			return
+		}
+	}
 }
 
 // Wait blocks until the session ends.
@@ -126,6 +165,10 @@ func (s *Session) Close() {
 		return
 	}
 	s.closed = true
+	
+	// Signal keepalive to stop
+	close(s.keepaliveStopCh)
+
 	if s.stdinPw != nil {
 		_ = s.stdinPw.Close()
 	}
@@ -141,6 +184,16 @@ func (s *Session) IsClosed() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.closed
+}
+
+// SessionInfo is the public struct for API response
+type SessionInfo struct {
+	ID         string    `json:"id"`
+	Host       string    `json:"host"`
+	User       string    `json:"user"`
+	Port       int       `json:"port"`
+	CreatedAt  time.Time `json:"createdAt"`
+	LastActive time.Time `json:"lastActive"`
 }
 
 // Manager manages active sessions.
@@ -169,6 +222,27 @@ func (m *Manager) Get(id string) (*Session, bool) {
 	defer m.mu.RUnlock()
 	s, ok := m.sessions[id]
 	return s, ok
+}
+
+// List returns a list of active sessions (snapshot).
+func (m *Manager) List() []SessionInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	var list []SessionInfo
+	for _, s := range m.sessions {
+		s.mu.Lock()
+		list = append(list, SessionInfo{
+			ID:         s.ID,
+			Host:       s.Host,
+			User:       s.User,
+			Port:       s.Port,
+			CreatedAt:  s.CreatedAt,
+			LastActive: s.LastActive,
+		})
+		s.mu.Unlock()
+	}
+	return list
 }
 
 func (m *Manager) Remove(id string) {

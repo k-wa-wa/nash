@@ -69,6 +69,26 @@ func handleHosts(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(hosts)
 }
 
+func handleSessions(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == http.MethodOptions {
+		return
+	}
+	
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessions := sessionManager.List()
+	//nolint:errchkjson // simple response
+	_ = json.NewEncoder(w).Encode(sessions)
+}
+
 func handleSummarize(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -200,7 +220,7 @@ func createNewSession(conn *websocket.Conn, r *http.Request) (*session.Session, 
 		return nil, err
 	}
 
-	sess := session.NewSession(sshClient)
+	sess := session.NewSession(sshClient, host, user, port)
 	sessionManager.Add(sess)
 	log.Printf("Created new session: %s", sess.ID)
 
@@ -238,7 +258,7 @@ func makeChallengeHandler(conn *websocket.Conn) ssh.ChallengeHandler {
 			Questions:   questions,
 			Echos:       echos,
 		}
-		payloadBytes, _ := json.Marshal(payload)
+		payloadBytes, _ := json.Marshal(payload) //nolint:errchkjson // struct is safe
 		msg := AuthMessage{
 			Type:    "AUTH_CHALLENGE",
 			Payload: payloadBytes,
@@ -334,6 +354,7 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.FS(fsys)))
 	http.HandleFunc("/api/hosts", handleHosts)
+	http.HandleFunc("/api/sessions", handleSessions)
 	http.HandleFunc("/api/summarize", handleSummarize)
 	http.HandleFunc("/api/info", handleInfo)
 	http.HandleFunc("/ws", handleWebSocket)

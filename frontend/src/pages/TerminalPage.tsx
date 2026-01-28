@@ -172,6 +172,7 @@ export function TerminalPage() {
 					if (msg.type === "SESSION_ID") {
 						const sid = msg.sessionId as string;
 						const isSecure = window.location.protocol === "https:";
+						// biome-ignore lint/suspicious/noDocumentCookie: Cookie is used for session resumption
 						document.cookie = `nash-session=${sid}; path=/; max-age=1800; ${isSecure ? "secure;" : ""} samesite=strict`;
 						return;
 					}
