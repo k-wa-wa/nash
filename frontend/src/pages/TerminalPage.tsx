@@ -169,6 +169,13 @@ export function TerminalPage() {
 				// Try parsing JSON first for special messages
 				try {
 					const msg = JSON.parse(ev.data);
+					if (msg.type === "SESSION_ID") {
+						const sid = msg.sessionId as string;
+						const isSecure = window.location.protocol === "https:";
+						document.cookie = `nash-session=${sid}; path=/; max-age=1800; ${isSecure ? "secure;" : ""} samesite=strict`;
+						return;
+					}
+
 					if (msg.type === "AUTH_CHALLENGE") {
 						// msg.payload is already the object because Go's json.RawMessage embeds it raw
 						const challenge = msg.payload as ChallengeState;
