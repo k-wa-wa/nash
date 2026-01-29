@@ -39,6 +39,9 @@ var configPath string
 // Global session manager
 var sessionManager *session.Manager
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow CORS for dev, and local usage
 	},
