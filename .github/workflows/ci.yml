@@ -64,9 +64,6 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-
-
-
       - name: Unit Tests
         run: npm run test:unit
 
@@ -169,6 +166,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set Short SHA
+        run: |
+          echo "SHORT_HEAD_SHA=${HEAD_SHA:0:7}" >> $GITHUB_ENV
+          echo "SHORT_MERGE_SHA=${MERGE_SHA:0:7}" >> $GITHUB_ENV
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_SHA: ${{ github.sha }}
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -178,6 +183,7 @@ jobs:
             type=sha,format=long,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=pr
+            type=raw,value=pr-${{ github.event.number }}-${{ env.SHORT_HEAD_SHA }}-${{ env.SHORT_MERGE_SHA }},enable=${{ github.event_name == 'pull_request' }}
 
       - name: Get build time and commit hash
         id: buildinfo
