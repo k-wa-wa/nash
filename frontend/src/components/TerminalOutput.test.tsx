@@ -29,7 +29,7 @@ vi.mock("@xterm/addon-fit", () => {
 });
 
 // Mock ResizeObserver
-global.ResizeObserver = class {
+globalThis.ResizeObserver = class {
 	public observe = vi.fn();
 	public unobserve = vi.fn();
 	public disconnect = vi.fn();
