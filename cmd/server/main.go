@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -37,12 +39,42 @@ var configPath string
 // Global session manager
 var sessionManager *session.Manager
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow CORS for dev, and local usage
 	},
+}
+
+const (
+	cookieName   = "nash-token"
+	cookieMaxAge = 60 * 60 * 24 * 365 * 10 // 10 years
+)
+
+func getOrSetOwnerToken(w http.ResponseWriter, r *http.Request) string {
+	c, err := r.Cookie(cookieName)
+	if err == nil && c.Value != "" {
+		return c.Value
+	}
+
+	// Generate new token
+	// Or just generate here locally if session.GenerateID isn't exported?
+	// session.generateID is unexported. Let's make it exported or duplicate.
+	// We'll duplicate simple random string logic here to avoid changing session pkg too much unexpectedly.
+	// Actually better to export session.GenerateID from session pkg?
+	// Let's implement simple random here.
+	b := make([]byte, 32)
+	rand.Read(b)
+	token = base64.URLEncoding.EncodeToString(b)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieName,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   cookieMaxAge,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   false, // Set true logic later, but for now follow handleResume logic
+	})
+	return token
 }
 
 func handleHosts(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +116,8 @@ func handleSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessions := sessionManager.List()
+	ownerToken := getOrSetOwnerToken(w, r)
+	sessions := sessionManager.List(ownerToken)
 	//nolint:errchkjson // simple response
 	_ = json.NewEncoder(w).Encode(sessions)
 }
@@ -150,9 +183,28 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// 1. Try to resume existing session
 	sess := tryResumeSession(r)
 
-	// 2. If no session, authenticate and create one
+	// 2. Identify user
+	// Note: WS handshake cookies are in `r`
+	token := getOrSetOwnerToken(w, r)
+
+	// 2a. If resuming, verify ownership
+	if sess != nil {
+		if sess.OwnerToken != token {
+			log.Printf("Security alert: Token mismatch for session %s (expected %s, got %s)", sess.ID, sess.OwnerToken, token)
+			// Proceed to fail or just drop session ref to force re-auth?
+			// If we return here, we might break the connection hard.
+			// Let's drop `sess` so it forces a standard auth or error.
+			sess = nil
+			// But wait, if they have the ID but wrong token, they shouldn't be able to resume.
+			// Currently `tryResumeSession` returns a session by ID.
+			// We effectively blocked it by setting sess=nil.
+		}
+	}
+
+	// 2b. If no session, authenticate and create one
 	if sess == nil {
-		sess, err = createNewSession(conn, r)
+		var err error
+		sess, err = createNewSession(conn, r, token)
 		if err != nil {
 			// Error is already logged/sent to client in createNewSession
 			return
@@ -181,7 +233,7 @@ func tryResumeSession(r *http.Request) *session.Session {
 	return nil
 }
 
-func createNewSession(conn *websocket.Conn, r *http.Request) (*session.Session, error) {
+func createNewSession(conn *websocket.Conn, r *http.Request, ownerToken string) (*session.Session, error) {
 	// Get connection params from Query
 	query := r.URL.Query()
 	host := query.Get("host")
@@ -220,7 +272,7 @@ func createNewSession(conn *websocket.Conn, r *http.Request) (*session.Session, 
 		return nil, err
 	}
 
-	sess := session.NewSession(sshClient, host, user, port)
+	sess := session.NewSession(sshClient, host, user, port, ownerToken)
 	sessionManager.Add(sess)
 	log.Printf("Created new session: %s", sess.ID)
 

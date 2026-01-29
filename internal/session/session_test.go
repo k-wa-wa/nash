@@ -31,6 +31,21 @@ func TestManager(t *testing.T) {
 		t.Errorf("Got wrong session")
 	}
 
+	// Test security filtering
+	s.OwnerToken = "user-A"
+	
+	// User A should see it
+	listA := m.List("user-A")
+	if len(listA) != 1 {
+		t.Errorf("User A should see their session")
+	}
+
+	// User B should NOT see it
+	listB := m.List("user-B")
+	if len(listB) != 0 {
+		t.Errorf("User B should not see auth session")
+	}
+
 	m.Remove("sess-1")
 	_, ok = m.Get("sess-1")
 	if ok {

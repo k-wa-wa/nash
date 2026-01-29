@@ -45,6 +45,7 @@ func (w *SwitchableWriter) SetTarget(t io.Writer) {
 // Session represents a persistent SSH session.
 type Session struct {
 	ID         string
+	OwnerToken string // Cookie value that owns this session
 	Host       string
 	User       string
 	Port       int
@@ -62,10 +63,11 @@ type Session struct {
 }
 
 // NewSession creates a new session (generating ID) but does not start it yet.
-func NewSession(client *ssh.Client, host, user string, port int) *Session {
+func NewSession(client *ssh.Client, host, user string, port int, ownerToken string) *Session {
 	id := generateID()
 	return &Session{
 		ID:              id,
+		OwnerToken:      ownerToken,
 		Host:            host,
 		User:            user,
 		Port:            port,
@@ -230,22 +232,27 @@ func (m *Manager) Get(id string) (*Session, bool) {
 	return s, ok
 }
 
-// List returns a list of active sessions (snapshot).
-func (m *Manager) List() []SessionInfo {
+// List returns a list of active sessions (snapshot) for a specific owner.
+func (m *Manager) List(ownerToken string) []SessionInfo {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	list := make([]SessionInfo, 0, len(m.sessions))
 	for _, s := range m.sessions {
 		s.mu.Lock()
-		list = append(list, SessionInfo{
-			ID:         s.ID,
-			Host:       s.Host,
-			User:       s.User,
-			Port:       s.Port,
-			CreatedAt:  s.CreatedAt,
-			LastActive: s.LastActive,
-		})
+		// Security check: Only include sessions that match the owner token
+		// If ownerToken is empty (should not happen in prod usage but maybe tests), we return nothing?
+		// User requirement: "ssh session and cookie matches".
+		if s.OwnerToken == ownerToken {
+			list = append(list, SessionInfo{
+				ID:         s.ID,
+				Host:       s.Host,
+				User:       s.User,
+				Port:       s.Port,
+				CreatedAt:  s.CreatedAt,
+				LastActive: s.LastActive,
+			})
+		}
 		s.mu.Unlock()
 	}
 	return list
