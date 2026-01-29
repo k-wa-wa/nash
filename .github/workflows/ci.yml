@@ -166,13 +166,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set Short SHA
+      - name: Set build info
+        id: buildinfo
         run: |
-          echo "SHORT_HEAD_SHA=${HEAD_SHA:0:7}" >> $GITHUB_ENV
-          echo "SHORT_MERGE_SHA=${MERGE_SHA:0:7}" >> $GITHUB_ENV
-        env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          MERGE_SHA: ${{ github.sha }}
+          HEAD_SHA="${{ github.sha }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+            echo "VERSION=pr-${HEAD_SHA:0:7}-${MERGE_SHA:0:7}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${HEAD_SHA:0:7}" >> $GITHUB_OUTPUT
+          fi
+
+          echo "BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -183,13 +188,7 @@ jobs:
             type=sha,format=long,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=pr
-            type=raw,value=pr-${{ github.event.number }}-${{ env.SHORT_HEAD_SHA }}-${{ env.SHORT_MERGE_SHA }},enable=${{ github.event_name == 'pull_request' }}
-
-      - name: Get build time and commit hash
-        id: buildinfo
-        run: |
-          echo "BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            type=raw,value={{ steps.buildinfo.outputs.VERSION }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -200,4 +199,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_TIME=${{ steps.buildinfo.outputs.BUILD_TIME }}
-            COMMIT_HASH=${{ steps.buildinfo.outputs.COMMIT_HASH }}
+            COMMIT_HASH=${{ steps.buildinfo.outputs.VERSION }}
