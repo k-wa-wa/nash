@@ -83,31 +83,45 @@ export function HomePage() {
 		// FaceID / WebAuthn check
 		if (window.PublicKeyCredential) {
 			try {
-				const available =
-					await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-				if (available) {
-					const challenge = new Uint8Array(32);
-					window.crypto.getRandomValues(challenge);
+				const isRegistered = localStorage.getItem("faceid_registered") === "true";
+				const challenge = new Uint8Array(32);
+				window.crypto.getRandomValues(challenge);
 
-					await navigator.credentials.create({
+				const commonOptions = {
+					challenge,
+					timeout: 60000,
+				};
+
+				if (!isRegistered) {
+					// --- 【初回】パスキーの作成（登録） ---
+					const credential = await navigator.credentials.create({
 						publicKey: {
-							challenge,
-							rp: {
-								name: "Nash",
-								id: window.location.hostname // ★必須: 現在のドメインを明示
-							},
+							...commonOptions,
+							rp: { name: "Nash", id: window.location.hostname },
 							user: {
-								id: Uint8Array.from("1", c => c.charCodeAt(0)), // 固定値でOK
-								name: "user",
+								id: Uint8Array.from("user_id_123", (c) => c.charCodeAt(0)),
+								name: "user@example.com",
 								displayName: "User",
 							},
 							pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-							timeout: 60000,
 							authenticatorSelection: {
-								authenticatorAttachment: "platform", // ★FaceIDを強制
-								userVerification: "required",       // ★FaceIDを必須に
-								residentKey: "discouraged",          // ★パスキーをiCloud等に深く残さない設定
+								authenticatorAttachment: "platform",
+								userVerification: "required",
+								residentKey: "preferred", // 端末に保存させる
 							},
+						},
+					});
+
+					if (credential) {
+						localStorage.setItem("faceid_registered", "true");
+					}
+				} else {
+					// --- 【2回目以降】保存されたパスキーで認証 ---
+					await navigator.credentials.get({
+						publicKey: {
+							...commonOptions,
+							rpId: window.location.hostname,
+							userVerification: "required", // これでFace IDが走る
 						},
 					});
 				}
