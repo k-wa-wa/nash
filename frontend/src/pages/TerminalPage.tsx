@@ -42,6 +42,15 @@ export function TerminalPage() {
 	// Derived state for suggestions
 	const suggestions = getSuggestions(inputCmd, historyCommands);
 
+	// Font Size
+	const [fontSize, setFontSize] = useState(14);
+	useEffect(() => {
+		const saved = localStorage.getItem("terminalFontSize");
+		if (saved) {
+			setFontSize(Number.parseInt(saved, 10));
+		}
+	}, []);
+
 	const [connectionParams, setConnectionParams] = useState<ConnectionParams>(
 		location.state as ConnectionParams,
 	);
@@ -526,6 +535,7 @@ export function TerminalPage() {
 					onResize={handleResize}
 					onBufferChange={handleBufferChange}
 					onClick={handleTerminalClick}
+					fontSize={fontSize}
 				/>
 			</div>
 

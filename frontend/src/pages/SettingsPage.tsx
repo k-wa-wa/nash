@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, Type } from "lucide-react";
 import styles from "./SettingsPage.module.css";
 import { fetchBuildInfo, type BuildInfo } from "../services/api";
 
 export function SettingsPage() {
 	const navigate = useNavigate();
 	const [aiSummaryEnabled, setAiSummaryEnabled] = useState(true);
+	const [fontSize, setFontSize] = useState(14);
 	const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(null);
 
 	// Load settings and fetch build info on mount
@@ -16,6 +17,11 @@ export function SettingsPage() {
 			setAiSummaryEnabled(saved === "true");
 		}
 
+		const savedFontSize = localStorage.getItem("terminalFontSize");
+		if (savedFontSize !== null) {
+			setFontSize(Number.parseInt(savedFontSize, 10));
+		}
+
 		fetchBuildInfo().then(setBuildInfo);
 	}, []);
 
@@ -23,6 +29,11 @@ export function SettingsPage() {
 	const handleToggle = (enabled: boolean) => {
 		setAiSummaryEnabled(enabled);
 		localStorage.setItem("aiSummaryEnabled", String(enabled));
+	};
+
+	const handleFontSizeChange = (size: number) => {
+		setFontSize(size);
+		localStorage.setItem("terminalFontSize", String(size));
 	};
 
 	return (
@@ -61,6 +72,43 @@ export function SettingsPage() {
 							/>
 							<span className={styles.slider} />
 						</label>
+					</div>
+				</div>
+
+				<div className={styles.section}>
+					<div className={styles.sectionHeader}>
+						<Type size={20} className={styles.sectionIcon} />
+						<h2 className={styles.sectionTitle}>Terminal</h2>
+					</div>
+
+					<div className={styles.settingItem}>
+						<div className={styles.settingInfo}>
+							<div className={styles.settingLabel}>Font Size</div>
+							<div className={styles.settingDescription}>
+								Terminal text size in pixels
+							</div>
+						</div>
+						<div className={styles.selectWrapper}>
+							<select
+								value={fontSize}
+								onChange={(e) => handleFontSizeChange(Number(e.target.value))}
+								className={styles.select}
+								style={{
+									padding: "8px",
+									borderRadius: "6px",
+									border: "1px solid #333",
+									backgroundColor: "#222",
+									color: "#fff",
+									fontSize: "14px",
+								}}
+							>
+								{[10, 11, 12, 13, 14, 15, 16, 18, 20, 24].map((size) => (
+									<option key={size} value={size}>
+										{size}px
+									</option>
+								))}
+							</select>
+						</div>
 					</div>
 				</div>
 			</div>

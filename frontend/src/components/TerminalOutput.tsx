@@ -17,20 +17,33 @@ interface Props {
 	onResize?: (cols: number, rows: number) => void;
 	onBufferChange?: (isAlternate: boolean) => void;
 	onClick?: () => void;
+	fontSize?: number;
 }
 
 export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
-	({ onData, onResize, onBufferChange, onClick }, ref) => {
+	({ onData, onResize, onBufferChange, onClick, fontSize = 14 }, ref) => {
 		const terminalRef = useRef<HTMLDivElement>(null);
 		const termInstanceRef = useRef<Terminal | null>(null);
 		const lastMarkerRef = useRef<IMarker | null>(null);
+		const fitAddonRef = useRef<FitAddon | null>(null);
+
+		// Handle font size updates
+		useEffect(() => {
+			if (termInstanceRef.current) {
+				termInstanceRef.current.options.fontSize = fontSize;
+				// Font size change might require refit
+				setTimeout(() => {
+					fitAddonRef.current?.fit();
+				}, 50);
+			}
+		}, [fontSize]);
 
 		// biome-ignore lint/correctness/useExhaustiveDependencies: Setup once
 		useEffect(() => {
 			const term = new Terminal({
 				cursorBlink: true,
 				cursorInactiveStyle: "block",
-				fontSize: 14,
+				fontSize: fontSize,
 				fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 				theme: {
 					background: "#0a0a0a",
@@ -41,6 +54,7 @@ export const TerminalOutput = React.forwardRef<TerminalOutputHandle, Props>(
 
 			const fitAddon = new FitAddon();
 			term.loadAddon(fitAddon);
+			fitAddonRef.current = fitAddon;
 
 			term.onData((data) => {
 				if (data === "\r") {

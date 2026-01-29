@@ -79,7 +79,42 @@ export function HomePage() {
 		);
 	};
 
-	const handleResume = (s: ActiveSession) => {
+	const handleResume = async (s: ActiveSession) => {
+		// FaceID / WebAuthn check
+		if (window.PublicKeyCredential) {
+			try {
+				const available =
+					await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+				if (available) {
+					// Dummy challenge for local verification intent
+					const challenge = new Uint8Array(32);
+					window.crypto.getRandomValues(challenge);
+
+					// We attempt to "authenticate" to verify presence.
+					// Since we don't have registered credentials, this might fail or ask for passkey.
+					// Ideally we'd have a credential ID stored in localStorage for this device.
+					// For now, we request any credential to trigger UI, but catch errors.
+					// Note: 'navigator.credentials.get' with empty allowCredentials might not show UI on all browsers
+					// unless there's a discoverable credential (passkey).
+					// However, requirement matches "use faceid".
+					// We'll try to enforce userVerification.
+					await navigator.credentials.get({
+						publicKey: {
+							challenge,
+							rpId: window.location.hostname,
+							userVerification: "required",
+							// Empty allowCredentials to trigger "use a passkey" flow or similar
+							allowCredentials: [],
+						},
+					});
+				}
+			} catch (e) {
+				console.warn("WebAuthn canceled or failed", e);
+				// If user cancels or auth fails, we stop connection
+				return;
+			}
+		}
+
 		// Set cookie via simple hack or just navigate?
 		// We can't easily set HttpOnly cookie from JS if it was HttpOnly.
 		// But our cookie is NOT HttpOnly based on previous implementation (JS set it).
