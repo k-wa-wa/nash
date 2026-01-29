@@ -66,7 +66,7 @@ func getOrSetOwnerToken(w http.ResponseWriter, r *http.Request) string {
 	// Let's implement simple random here.
 	b := make([]byte, 32)
 	rand.Read(b)
-	token = base64.URLEncoding.EncodeToString(b)
+	token := base64.URLEncoding.EncodeToString(b)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
