@@ -86,31 +86,27 @@ export function HomePage() {
 				const available =
 					await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
 				if (available) {
-					// Dummy challenge for local verification intent
 					const challenge = new Uint8Array(32);
 					window.crypto.getRandomValues(challenge);
 
-					// We attempt to "authenticate" to verify presence.
-					// Since we don't have registered credentials, this might fail or ask for passkey.
-					// Ideally we'd have a credential ID stored in localStorage for this device.
-					// For now, we request any credential to trigger UI, but catch errors.
-					// Fix based on feedback: Use 'create' with platform attachment to force local auth
-					// just for "User Presence/Verification" check, without actually saving the credential.
 					await navigator.credentials.create({
 						publicKey: {
 							challenge,
-							rp: { name: "Nash" },
+							rp: {
+								name: "Nash",
+								id: window.location.hostname // ★必須: 現在のドメインを明示
+							},
 							user: {
-								id: new Uint8Array(16),
+								id: Uint8Array.from("1", c => c.charCodeAt(0)), // 固定値でOK
 								name: "user",
 								displayName: "User",
 							},
 							pubKeyCredParams: [{ alg: -7, type: "public-key" }],
 							timeout: 60000,
 							authenticatorSelection: {
-								authenticatorAttachment: "platform",
-								userVerification: "required",
-								requireResidentKey: false,
+								authenticatorAttachment: "platform", // ★FaceIDを強制
+								userVerification: "required",       // ★FaceIDを必須に
+								residentKey: "discouraged",          // ★パスキーをiCloud等に深く残さない設定
 							},
 						},
 					});
