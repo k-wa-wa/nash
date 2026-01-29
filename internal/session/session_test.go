@@ -33,7 +33,7 @@ func TestManager(t *testing.T) {
 
 	// Test security filtering
 	s.OwnerToken = "user-A"
-	
+
 	// User A should see it
 	listA := m.List("user-A")
 	if len(listA) != 1 {

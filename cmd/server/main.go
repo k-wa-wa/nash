@@ -65,7 +65,17 @@ func getOrSetOwnerToken(w http.ResponseWriter, r *http.Request) string {
 	// Actually better to export session.GenerateID from session pkg?
 	// Let's implement simple random here.
 	b := make([]byte, 32)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		// Fallback or panic? For server startup/request critical path, log error.
+		// Actually panic might be safe for failed rand read, but let's just log and continue with partial?
+		// No, security. Return empty/fail.
+		// Simplest: just ignore if we want to suppress lint, but better to check.
+		// Since we can't easily return error from here without changing signature, let's just _ = ... if we are lazy.
+		// But linter wants us to check.
+		// "nash-token" generation failure is bad.
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return ""
+	}
 	token := base64.URLEncoding.EncodeToString(b)
 
 	http.SetCookie(w, &http.Cookie{
