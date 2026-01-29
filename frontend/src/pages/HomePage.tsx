@@ -80,65 +80,39 @@ export function HomePage() {
 	};
 
 	const handleResume = async (s: ActiveSession) => {
-		// FaceID / WebAuthn check
-		if (window.PublicKeyCredential) {
+		// Check if Passkey Auth is enabled
+		const passkeyEnabled = localStorage.getItem("passkeyEnabled") === "true";
+
+		if (passkeyEnabled && window.PublicKeyCredential) {
 			try {
-				const isRegistered = localStorage.getItem("faceid_registered") === "true";
-				const challenge = new Uint8Array(32);
-				window.crypto.getRandomValues(challenge);
+				// We assume registration happened in Settings if enabled.
+				// But just in case, we check registered flag logic?
+				// Actually, if settings says ON, we should just enforce `get`.
 
 				const commonOptions = {
-					challenge,
+					challenge: new Uint8Array(32), // In real world use server challenge
 					timeout: 60000,
 				};
+				window.crypto.getRandomValues(commonOptions.challenge);
 
-				if (!isRegistered) {
-					// --- 【初回】パスキーの作成（登録） ---
-					const credential = await navigator.credentials.create({
-						publicKey: {
-							...commonOptions,
-							rp: { name: "Nash", id: window.location.hostname },
-							user: {
-								id: Uint8Array.from("user_id_123", (c) => c.charCodeAt(0)),
-								name: "user@example.com",
-								displayName: "User",
-							},
-							pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-							authenticatorSelection: {
-								authenticatorAttachment: "platform",
-								userVerification: "required",
-								residentKey: "preferred", // 端末に保存させる
-							},
-						},
-					});
+				// Only Authenticate
+				await navigator.credentials.get({
+					publicKey: {
+						...commonOptions,
+						rpId: window.location.hostname,
+						userVerification: "required",
+					},
+				});
 
-					if (credential) {
-						localStorage.setItem("faceid_registered", "true");
-					}
-				} else {
-					// --- 【2回目以降】保存されたパスキーで認証 ---
-					await navigator.credentials.get({
-						publicKey: {
-							...commonOptions,
-							rpId: window.location.hostname,
-							userVerification: "required", // これでFace IDが走る
-						},
-					});
-				}
+				// Success -> Proceed
 			} catch (e) {
 				console.warn("WebAuthn canceled or failed", e);
-				// If user cancels or auth fails, we stop connection
+				// Auth failed/canceled -> Stop connection
 				return;
 			}
 		}
 
-		// Set cookie via simple hack or just navigate?
-		// We can't easily set HttpOnly cookie from JS if it was HttpOnly.
-		// But our cookie is NOT HttpOnly based on previous implementation (JS set it).
-		// So we can set it here to resume specific ID!
-		// Wait, user might pick any session.
-		// If we set cookie `nash-session=ID`, then navigate to /terminal, backend will resume it.
-		// Logic matches implementation in TerminalPage/Backend.
+		// Proceed to connect
 		const isSecure = window.location.protocol === "https:";
 		// biome-ignore lint/suspicious/noDocumentCookie: Cookie is used for session resumption
 		document.cookie = `nash-session=${s.id}; path=/; max-age=1800; ${isSecure ? "secure;" : ""} samesite=strict`;
