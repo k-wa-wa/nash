@@ -94,17 +94,24 @@ export function HomePage() {
 					// Since we don't have registered credentials, this might fail or ask for passkey.
 					// Ideally we'd have a credential ID stored in localStorage for this device.
 					// For now, we request any credential to trigger UI, but catch errors.
-					// Note: 'navigator.credentials.get' with empty allowCredentials might not show UI on all browsers
-					// unless there's a discoverable credential (passkey).
-					// However, requirement matches "use faceid".
-					// We'll try to enforce userVerification.
-					await navigator.credentials.get({
+					// Fix based on feedback: Use 'create' with platform attachment to force local auth
+					// just for "User Presence/Verification" check, without actually saving the credential.
+					await navigator.credentials.create({
 						publicKey: {
 							challenge,
-							rpId: window.location.hostname,
-							userVerification: "required",
-							// Empty allowCredentials to trigger "use a passkey" flow or similar
-							allowCredentials: [],
+							rp: { name: "Nash" },
+							user: {
+								id: new Uint8Array(16),
+								name: "user",
+								displayName: "User",
+							},
+							pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+							timeout: 60000,
+							authenticatorSelection: {
+								authenticatorAttachment: "platform",
+								userVerification: "required",
+								requireResidentKey: false,
+							},
 						},
 					});
 				}
