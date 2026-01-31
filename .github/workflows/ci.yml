@@ -72,7 +72,6 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    needs: [backend-guardrails, frontend-guardrails]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -147,7 +146,7 @@ jobs:
 
   build-and-push:
     name: Build and Push Docker Image
-    needs: [e2e-tests]
+    needs: [backend-guardrails, frontend-guardrails, e2e-tests]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -185,10 +184,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,format=long,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=pr
             type=raw,value={{ steps.buildinfo.outputs.VERSION }}
+            type=raw,value=pr-latest,enable=${{ github.event_name == 'pull_request' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
